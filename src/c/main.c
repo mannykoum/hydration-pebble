@@ -264,7 +264,7 @@ static void draw_main_view(GContext *ctx, GRect bounds) {
   draw_progress_bar(ctx, GRect(8, 62, bounds.size.w - 16, 18), minutes, 24 * 60, day_label);
 
   graphics_draw_text(ctx,
-    s_edit_goal ? "Goal edit: use up/down" : "Hold SELECT: edit goal",
+    s_edit_goal ? "Goal edit: use UP/DOWN" : "Hold SELECT: edit goal",
     fonts_get_system_font(FONT_KEY_GOTHIC_14),
     GRect(8, 92, bounds.size.w - 16, 28),
     GTextOverflowModeWordWrap,
@@ -311,7 +311,7 @@ static void draw_amount_view(GContext *ctx, GRect bounds) {
     graphics_context_set_text_color(ctx, UI_TEXT);
   } else {
     graphics_draw_text(ctx,
-      s_edit_amount ? "Amount edit: use up/down" : "SELECT: add/remove, hold: edit",
+      s_edit_amount ? "Amount edit: use UP/DOWN" : "SELECT: add/remove, hold: edit",
       fonts_get_system_font(FONT_KEY_GOTHIC_14),
       GRect(0, bounds.size.h - 20, bounds.size.w, 18),
       GTextOverflowModeTrailingEllipsis,

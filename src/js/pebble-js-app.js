@@ -31,7 +31,8 @@
 
   function loadIntakeLog() {
     try {
-      var parsed = JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || '[]');
+      var raw = localStorage.getItem(LOG_STORAGE_KEY);
+      var parsed = JSON.parse(raw || '[]');
       return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       return [];
