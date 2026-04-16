@@ -184,9 +184,8 @@ static int progress_step(void) {
   return REPEAT_STEP_BASE + streak_factor * REPEAT_STEP_INCREMENT;
 }
 
-static void move_view(int direction) {
-  int next = ((int)s_view + direction + VIEW_COUNT) % VIEW_COUNT;
-  s_view = (MainView)next;
+static void move_view(MainView new_view) {
+  s_view = new_view;
   s_edit_goal = false;
   s_edit_amount = false;
   s_selecting_day = false;
@@ -446,9 +445,40 @@ static void apply_delta(int direction) {
     }
     s_selected_day_offset = next;
   } else if (s_view == VIEW_AMOUNT) {
-    s_selected_amount = (s_selected_amount - direction + MAX_AMOUNTS) % MAX_AMOUNTS;
-  } else {
-    move_view(1);
+    if (direction == 1) {
+      /* up */
+      if (s_selected_amount == 0) {
+        move_view(VIEW_MAIN);
+        return;
+      }
+      s_selected_amount--;
+    } else {
+      /* down — move to next row; do nothing when already at the last row */
+      if (s_selected_amount < MAX_AMOUNTS - 1) {
+        s_selected_amount++;
+      }
+    }
+  } else if (s_view == VIEW_MAIN) {
+    if (direction == 1) {
+      move_view(VIEW_DETAIL);
+    } else {
+      s_selected_amount = 0;
+      move_view(VIEW_AMOUNT);
+    }
+    return;
+  } else if (s_view == VIEW_DETAIL) {
+    if (direction == 1) {
+      move_view(VIEW_WEEKLY);
+    } else {
+      move_view(VIEW_MAIN);
+    }
+    return;
+  } else if (s_view == VIEW_WEEKLY) {
+    if (direction == -1) {
+      move_view(VIEW_DETAIL);
+      return;
+    }
+    /* up from weekly: do nothing */
   }
 
   layer_mark_dirty(s_canvas_layer);
