@@ -5,6 +5,9 @@
 #define MAX_AMOUNTS 4
 #define MAX_DAYS 14
 #define MAX_POINTS 32
+#define REPEAT_STREAK_DIVISOR 3
+#define REPEAT_STEP_BASE 10
+#define REPEAT_STEP_INCREMENT 15
 
 typedef enum {
   UNIT_ML = 0,
@@ -171,11 +174,11 @@ static void add_intake(int delta_ml) {
 }
 
 static int progress_step(void) {
-  int streak_factor = s_repeat_streak / 3;
+  int streak_factor = s_repeat_streak / REPEAT_STREAK_DIVISOR;
   if (streak_factor > 10) {
     streak_factor = 10;
   }
-  return 10 + streak_factor * 15;
+  return REPEAT_STEP_BASE + streak_factor * REPEAT_STEP_INCREMENT;
 }
 
 static void move_view(int direction) {
