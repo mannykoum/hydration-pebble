@@ -1,0 +1,26 @@
+{
+  "appKeys": {
+    "KEY_GOAL_ML": 0,
+    "KEY_UNIT": 1,
+    "KEY_AMOUNT_0": 2,
+    "KEY_AMOUNT_1": 3,
+    "KEY_AMOUNT_2": 4,
+    "KEY_AMOUNT_3": 5
+  },
+  "capabilities": ["configurable"],
+  "companyName": "hydration-pebble",
+  "longName": "Hydration Pebble",
+  "projectType": "native",
+  "resources": {
+    "media": []
+  },
+  "sdkVersion": "3",
+  "shortName": "Hydration",
+  "targetPlatforms": ["aplite", "basalt", "chalk", "diorite"],
+  "uuid": "0b870527-e0d5-4f2c-9f38-ae1f4a6af21d",
+  "versionCode": 1,
+  "versionLabel": "1.0",
+  "watchapp": {
+    "watchface": false
+  }
+}
