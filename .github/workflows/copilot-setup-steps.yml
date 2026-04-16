@@ -1,0 +1,50 @@
+name: "Copilot Setup Steps"
+
+# Run automatically when this file changes, and allow manual runs from the Actions tab.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  # Job name MUST be `copilot-setup-steps` to be picked up by Copilot.
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install Pebble SDK system-level dependencies as documented at
+      # https://developer.repebble.com/sdk/
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            nodejs \
+            npm \
+            libsdl1.2debian \
+            libfdt1 \
+            libsdl2-2.0-0 \
+            libpixman-1-0 \
+            python3-pip \
+            python3-venv
+
+      # Install the pebble-tool Python package which provides the `pebble` CLI
+      - name: Install pebble-tool
+        run: pip3 install --user --upgrade pebble-tool
+
+      # Make sure the user-level pip bin directory is on PATH for this step and later
+      - name: Add ~/.local/bin to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      # Download and install the latest Pebble SDK (C toolchain + emulator assets)
+      - name: Install Pebble SDK
+        run: pebble sdk install latest
