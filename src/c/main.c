@@ -1,4 +1,5 @@
 #include <pebble.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #define STORAGE_KEY_STATE 1
@@ -75,16 +76,18 @@ static int unit_multiplier(Unit unit) {
 
 static void format_amount(int ml, char *buffer, size_t size) {
   int mul = unit_multiplier((Unit)s_state.unit);
-  int whole = ml / mul;
-  int frac = (abs(ml) % mul) * 10 / mul;
+  int abs_ml = abs(ml);
+  int whole = abs_ml / mul;
+  int frac = (abs_ml % mul) * 10 / mul;
+  char sign = ml < 0 ? '-' : '+';
   const char *suffix = s_state.unit == UNIT_ML ? "ml" : (s_state.unit == UNIT_CUPS ? "c" : "pt");
   if (s_state.unit == UNIT_ML) {
     snprintf(buffer, size, "%+d%s", ml, suffix);
   } else {
     if (frac == 0) {
-      snprintf(buffer, size, "%+d%s", whole, suffix);
+      snprintf(buffer, size, "%c%d%s", sign, whole, suffix);
     } else {
-      snprintf(buffer, size, "%+d.%d%s", whole, frac, suffix);
+      snprintf(buffer, size, "%c%d.%d%s", sign, whole, frac, suffix);
     }
   }
 }
@@ -197,7 +200,7 @@ static void draw_progress_bar(GContext *ctx, GRect frame, int numerator, int den
 
   int fill_width = 0;
   if (denominator > 0 && numerator > 0) {
-    int ratio = (numerator * frame.size.w) / denominator;
+    int ratio = (int)(((int64_t)numerator * frame.size.w) / denominator);
     fill_width = ratio > frame.size.w ? frame.size.w : ratio;
   }
 
@@ -312,7 +315,8 @@ static void draw_detail_view(GContext *ctx, GRect bounds) {
     GPoint last = GPoint(plot.origin.x, plot.origin.y + plot.size.h);
     for (uint8_t i = 0; i < day->point_count; i++) {
       int x = plot.origin.x + (day->minutes[i] * plot.size.w) / (24 * 60);
-      int y = plot.origin.y + plot.size.h - (day->cumulative_ml[i] * plot.size.h) / max_value;
+      int y = plot.origin.y + plot.size.h -
+              (int)(((int64_t)day->cumulative_ml[i] * plot.size.h) / max_value);
       if (y < plot.origin.y) {
         y = plot.origin.y;
       }
