@@ -5,6 +5,7 @@
     amounts: [250, 500, -250, 1000]
   };
   var LOG_STORAGE_KEY = 'hydration_intake_log';
+  var MAX_LOG_ENTRIES = 500;
 
   var UNIT_TO_ML = {
     ml: 1,
@@ -51,8 +52,8 @@
       deltaMl: Number(deltaMl || 0),
       totalMl: Number(totalMl || 0)
     });
-    if (entries.length > 500) {
-      entries = entries.slice(entries.length - 500);
+    if (entries.length > MAX_LOG_ENTRIES) {
+      entries = entries.slice(entries.length - MAX_LOG_ENTRIES);
     }
     storeIntakeLog(entries);
   }
