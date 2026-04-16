@@ -122,7 +122,11 @@
 
   Pebble.addEventListener('appmessage', function(e) {
     var payload = e && e.payload ? e.payload : {};
-    if (payload.KEY_LOG_DELTA_ML === undefined) {
+    if (
+      payload.KEY_LOG_DELTA_ML === undefined ||
+      payload.KEY_LOG_TOTAL_ML === undefined ||
+      payload.KEY_LOG_MINUTE === undefined
+    ) {
       return;
     }
     appendIntakeLog(payload.KEY_LOG_DELTA_ML, payload.KEY_LOG_TOTAL_ML, payload.KEY_LOG_MINUTE);
