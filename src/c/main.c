@@ -9,6 +9,9 @@
 #define REPEAT_STREAK_DIVISOR 3
 #define REPEAT_STEP_BASE 10
 #define REPEAT_STEP_INCREMENT 15
+#define KEY_LOG_DELTA_ML 6
+#define KEY_LOG_TOTAL_ML 7
+#define KEY_LOG_MINUTE 8
 
 typedef enum {
   UNIT_ML = 0,
@@ -53,6 +56,22 @@ static int s_last_repeat_direction = 0;
 static bool s_anim_on = false;
 
 static const int APP_KEYS[] = {0, 1, 2, 3, 4, 5};
+
+#ifdef PBL_COLOR
+static const GColor UI_BG = GColorOxfordBlue;
+static const GColor UI_TEXT = GColorWhite;
+static const GColor UI_MUTED = GColorLightGray;
+static const GColor UI_ACCENT = GColorVividCerulean;
+static const GColor UI_ACCENT_ALT = GColorCyan;
+static const GColor UI_POSITIVE = GColorMalachite;
+#else
+static const GColor UI_BG = GColorWhite;
+static const GColor UI_TEXT = GColorBlack;
+static const GColor UI_MUTED = GColorBlack;
+static const GColor UI_ACCENT = GColorBlack;
+static const GColor UI_ACCENT_ALT = GColorBlack;
+static const GColor UI_POSITIVE = GColorBlack;
+#endif
 
 static int day_key_from_time(time_t t) {
   struct tm *tm_now = localtime(&t);
@@ -151,6 +170,17 @@ static int day_total(int offset) {
   return day ? day->total_ml : 0;
 }
 
+static void send_log_event(int delta_ml, int total_ml, int minute) {
+  DictionaryIterator *iter = NULL;
+  if (app_message_outbox_begin(&iter) != APP_MSG_OK || !iter) {
+    return;
+  }
+  dict_write_int32(iter, KEY_LOG_DELTA_ML, delta_ml);
+  dict_write_int32(iter, KEY_LOG_TOTAL_ML, total_ml);
+  dict_write_int16(iter, KEY_LOG_MINUTE, (int16_t)minute);
+  app_message_outbox_send();
+}
+
 static void add_intake(int delta_ml) {
   DayData *today = ensure_today_day();
   int next_total = today->total_ml + delta_ml;
@@ -174,6 +204,7 @@ static void add_intake(int delta_ml) {
   }
 
   save_state();
+  send_log_event(delta_ml, today->total_ml, minute);
 }
 
 static int progress_step(void) {
@@ -194,7 +225,7 @@ static void move_view(MainView new_view) {
 }
 
 static void draw_progress_bar(GContext *ctx, GRect frame, int numerator, int denominator, const char *label) {
-  graphics_context_set_stroke_color(ctx, GColorBlack);
+  graphics_context_set_stroke_color(ctx, UI_MUTED);
   graphics_draw_rect(ctx, frame);
 
   int fill_width = 0;
@@ -204,13 +235,15 @@ static void draw_progress_bar(GContext *ctx, GRect frame, int numerator, int den
   }
 
   if (fill_width > 0) {
-    graphics_context_set_fill_color(ctx, GColorBlack);
+    graphics_context_set_fill_color(ctx, s_anim_on ? UI_ACCENT_ALT : UI_ACCENT);
     graphics_fill_rect(ctx, GRect(frame.origin.x + 1, frame.origin.y + 1, fill_width - 1, frame.size.h - 1), 0, GCornerNone);
   }
 
+  graphics_context_set_text_color(ctx, UI_MUTED);
   graphics_draw_text(ctx, label, fonts_get_system_font(FONT_KEY_GOTHIC_14),
     GRect(frame.origin.x, frame.origin.y - 16, frame.size.w, 14),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+  graphics_context_set_text_color(ctx, UI_TEXT);
 }
 
 static void draw_main_view(GContext *ctx, GRect bounds) {
@@ -231,7 +264,7 @@ static void draw_main_view(GContext *ctx, GRect bounds) {
   draw_progress_bar(ctx, GRect(8, 62, bounds.size.w - 16, 18), minutes, 24 * 60, day_label);
 
   graphics_draw_text(ctx,
-    s_edit_goal ? "Edit goal: up/down" : "Hold select to edit goal",
+    s_edit_goal ? "Goal edit: up/down" : "Hold SELECT to edit goal",
     fonts_get_system_font(FONT_KEY_GOTHIC_14),
     GRect(8, 92, bounds.size.w - 16, 28),
     GTextOverflowModeWordWrap,
@@ -254,19 +287,20 @@ static void draw_amount_view(GContext *ctx, GRect bounds) {
     format_amount(s_state.amounts_ml[i], line, sizeof(line));
     GRect row = GRect(34, 12 + i * 24, bounds.size.w - 40, 22);
     if (i == s_selected_amount) {
-      graphics_context_set_fill_color(ctx, GColorBlack);
+      graphics_context_set_fill_color(ctx, s_anim_on ? UI_ACCENT_ALT : UI_ACCENT);
       graphics_fill_rect(ctx, row, 0, GCornerNone);
       graphics_context_set_text_color(ctx, GColorWhite);
     } else {
-      graphics_context_set_text_color(ctx, GColorBlack);
+      graphics_context_set_text_color(ctx, UI_TEXT);
     }
 
     graphics_draw_text(ctx, line, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), row,
                        GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
-  graphics_context_set_text_color(ctx, GColorBlack);
+  graphics_context_set_text_color(ctx, UI_TEXT);
 
   if (goal_met) {
+    graphics_context_set_text_color(ctx, UI_POSITIVE);
     graphics_draw_text(ctx,
       s_anim_on ? "Goal met!" : "Great job!",
       fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
@@ -274,9 +308,10 @@ static void draw_amount_view(GContext *ctx, GRect bounds) {
       GTextOverflowModeTrailingEllipsis,
       GTextAlignmentCenter,
       NULL);
+    graphics_context_set_text_color(ctx, UI_TEXT);
   } else {
     graphics_draw_text(ctx,
-      s_edit_amount ? "Edit amount" : "Select=add/remove Hold=edit",
+      s_edit_amount ? "Amount edit: up/down" : "SELECT add/remove, hold edit",
       fonts_get_system_font(FONT_KEY_GOTHIC_14),
       GRect(0, bounds.size.h - 20, bounds.size.w, 18),
       GTextOverflowModeTrailingEllipsis,
@@ -374,9 +409,9 @@ static void draw_weekly_view(GContext *ctx, GRect bounds) {
 
 static void canvas_update(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
-  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_context_set_fill_color(ctx, UI_BG);
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
-  graphics_context_set_text_color(ctx, GColorBlack);
+  graphics_context_set_text_color(ctx, UI_TEXT);
 
   switch (s_view) {
     case VIEW_MAIN: draw_main_view(ctx, bounds); break;

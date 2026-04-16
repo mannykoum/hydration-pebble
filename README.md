@@ -21,3 +21,11 @@ A pebble app to track water intake on a daily basis.
   3. Daily cumulative progress plot with selectable previous days.
   4. Last-7-days bar chart view.
 - Phone configuration for unit (ml/cups/pints), goal, and 4 signed amount presets.
+- Companion intake log persistence in phone local storage for later sync/export work.
+- Color-aware UI theme on color Pebble platforms with monochrome fallback.
+- Lightweight pulse animation on highlighted UI elements and goal-complete messaging.
+
+## Branch strategy
+- `main`: release/version bumps only.
+- `dev`: default integration branch for validated feature work.
+- `feature/*`: short-lived branches created from `dev` and merged back via pull request.

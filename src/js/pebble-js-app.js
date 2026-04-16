@@ -4,6 +4,7 @@
     unit: 'ml',
     amounts: [250, 500, -250, 1000]
   };
+  var LOG_STORAGE_KEY = 'hydration_intake_log';
 
   var UNIT_TO_ML = {
     ml: 1,
@@ -26,6 +27,33 @@
 
   function storeSettings(settings) {
     localStorage.setItem('hydration_settings', JSON.stringify(settings));
+  }
+
+  function loadIntakeLog() {
+    try {
+      var parsed = JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function storeIntakeLog(entries) {
+    localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(entries));
+  }
+
+  function appendIntakeLog(deltaMl, totalMl, minute) {
+    var entries = loadIntakeLog();
+    entries.push({
+      timestamp: Date.now(),
+      minuteOfDay: Number(minute || 0),
+      deltaMl: Number(deltaMl || 0),
+      totalMl: Number(totalMl || 0)
+    });
+    if (entries.length > 500) {
+      entries = entries.slice(entries.length - 500);
+    }
+    storeIntakeLog(entries);
   }
 
   function convertToMl(value, unit) {
@@ -90,5 +118,13 @@
       KEY_AMOUNT_2: next.amounts[2],
       KEY_AMOUNT_3: next.amounts[3]
     });
+  });
+
+  Pebble.addEventListener('appmessage', function(e) {
+    var payload = e && e.payload ? e.payload : {};
+    if (payload.KEY_LOG_DELTA_ML === undefined) {
+      return;
+    }
+    appendIntakeLog(payload.KEY_LOG_DELTA_ML, payload.KEY_LOG_TOTAL_ML, payload.KEY_LOG_MINUTE);
   });
 })();
