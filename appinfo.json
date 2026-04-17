@@ -5,7 +5,10 @@
     "KEY_AMOUNT_0": 2,
     "KEY_AMOUNT_1": 3,
     "KEY_AMOUNT_2": 4,
-    "KEY_AMOUNT_3": 5
+    "KEY_AMOUNT_3": 5,
+    "KEY_LOG_DELTA_ML": 6,
+    "KEY_LOG_TOTAL_ML": 7,
+    "KEY_LOG_MINUTE": 8
   },
   "capabilities": ["configurable"],
   "companyName": "hydration-pebble",
