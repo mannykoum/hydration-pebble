@@ -1,6 +1,7 @@
 #include <pebble.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <math.h>
 
 #define STORAGE_KEY_STATE 1
 #define MAX_AMOUNTS 4
@@ -58,6 +59,8 @@ static int s_last_repeat_direction = 0;
 static bool s_anim_on = false;
 static bool s_celebrating = false;
 static int s_celebration_counter = 0;
+static int s_transition_offset = 0;
+static uint8_t s_tick_count = 0;
 static time_t s_last_intake_time = 0;
 static int s_last_intake_amount = 0;
 static uint8_t s_last_point_count = 0;
@@ -309,6 +312,7 @@ static void move_view(MainView new_view) {
   s_edit_amount = false;
   s_selecting_day = false;
   s_repeat_streak = 0;
+  s_transition_offset = 144;
   vibes_short_pulse();
   layer_mark_dirty(s_canvas_layer);
 }
@@ -480,10 +484,12 @@ static void draw_amount_view(GContext *ctx, GRect bounds) {
   graphics_draw_line(ctx, GPoint(cup_x + 2, cup_y + cup_height - 6), GPoint(cup_x + cup_width - 2, cup_y + cup_height - 6));
   graphics_draw_line(ctx, GPoint(cup_x + 2, cup_y + cup_height - 5), GPoint(cup_x + cup_width - 2, cup_y + cup_height - 5));
   
-  // Water level indicator (fills 60% of cup)
+  // Water level indicator (fills 60% of cup) with wave animation
   int water_height = (cup_height - 10) * 6 / 10;
+  int y_offset = (int)(sin(s_tick_count * 0.3) * 2);
+  
   graphics_context_set_fill_color(ctx, UI_ACCENT);
-  graphics_fill_rect(ctx, GRect(cup_x + 4, cup_y + cup_height - 8 - water_height, cup_width - 8, water_height), 4, GCornersAll);
+  graphics_fill_rect(ctx, GRect(cup_x + 4, cup_y + cup_height - 8 - water_height + y_offset, cup_width - 8, water_height), 4, GCornersAll);
 
   for (int i = 0; i < MAX_AMOUNTS; i++) {
     char line[20];
@@ -741,6 +747,14 @@ static void draw_celebration(GContext *ctx, GRect bounds) {
   
   for (int i = 0; i < 15; i++) {
     GColor color = (i % 2 == 0) ? UI_ACCENT : UI_POSITIVE;
+    
+    // Shimmer effect: alternate brightness based on animation state
+    if (s_anim_on && i % 4 == s_tick_count % 4) {
+#ifdef PBL_COLOR
+      color = GColorWhite;
+#endif
+    }
+    
     graphics_context_set_fill_color(ctx, color);
     
     if (i % 3 == 0) {
@@ -768,12 +782,35 @@ static void canvas_update(Layer *layer, GContext *ctx) {
     return;
   }
 
+  // Apply transition offset for slide-in effect
+  GPoint offset = GPoint(-s_transition_offset, 0);
+  
   switch (s_view) {
-    case VIEW_MAIN: draw_main_view(ctx, bounds); break;
-    case VIEW_AMOUNT: draw_amount_view(ctx, bounds); break;
-    case VIEW_DETAIL: draw_detail_view(ctx, bounds); break;
-    case VIEW_WEEKLY: draw_weekly_view(ctx, bounds); break;
-    case VIEW_STATS: draw_stats_view(ctx, bounds); break;
+    case VIEW_MAIN: 
+      graphics_context_set_fill_color(ctx, UI_BG);
+      graphics_fill_rect(ctx, GRect(offset.x, offset.y, bounds.size.w, bounds.size.h), 0, GCornerNone);
+      draw_main_view(ctx, GRect(offset.x, offset.y, bounds.size.w, bounds.size.h)); 
+      break;
+    case VIEW_AMOUNT: 
+      graphics_context_set_fill_color(ctx, UI_BG);
+      graphics_fill_rect(ctx, GRect(offset.x, offset.y, bounds.size.w, bounds.size.h), 0, GCornerNone);
+      draw_amount_view(ctx, GRect(offset.x, offset.y, bounds.size.w, bounds.size.h)); 
+      break;
+    case VIEW_DETAIL: 
+      graphics_context_set_fill_color(ctx, UI_BG);
+      graphics_fill_rect(ctx, GRect(offset.x, offset.y, bounds.size.w, bounds.size.h), 0, GCornerNone);
+      draw_detail_view(ctx, GRect(offset.x, offset.y, bounds.size.w, bounds.size.h)); 
+      break;
+    case VIEW_WEEKLY: 
+      graphics_context_set_fill_color(ctx, UI_BG);
+      graphics_fill_rect(ctx, GRect(offset.x, offset.y, bounds.size.w, bounds.size.h), 0, GCornerNone);
+      draw_weekly_view(ctx, GRect(offset.x, offset.y, bounds.size.w, bounds.size.h)); 
+      break;
+    case VIEW_STATS: 
+      graphics_context_set_fill_color(ctx, UI_BG);
+      graphics_fill_rect(ctx, GRect(offset.x, offset.y, bounds.size.w, bounds.size.h), 0, GCornerNone);
+      draw_stats_view(ctx, GRect(offset.x, offset.y, bounds.size.w, bounds.size.h)); 
+      break;
     default: break;
   }
   
@@ -951,16 +988,22 @@ static void click_config_provider(void *context) {
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  static uint8_t tick_count = 0;
-  
   reset_if_new_day();
   
-  tick_count++;
-  if (tick_count >= 2) {
-    tick_count = 0;
+  s_tick_count++;
+  if (s_tick_count >= 2) {
+    s_tick_count = 0;
     s_anim_on = !s_anim_on;
-    layer_mark_dirty(s_canvas_layer);
   }
+  
+  if (s_transition_offset > 0) {
+    s_transition_offset -= 12;
+    if (s_transition_offset < 0) {
+      s_transition_offset = 0;
+    }
+  }
+  
+  layer_mark_dirty(s_canvas_layer);
 }
 
 static void inbox_received_callback(DictionaryIterator *iter, void *context) {
