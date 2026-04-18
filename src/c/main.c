@@ -785,7 +785,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
     graphics_context_set_stroke_color(ctx, UI_TEXT);
     graphics_draw_rect(ctx, message_box);
     graphics_context_set_text_color(ctx, GColorWhite);
-    graphics_draw_text(ctx, "Undone!", fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+    graphics_draw_text(ctx, "Undone!", FONT_TITLE,
       GRect(message_box.origin.x, message_box.origin.y + 8, message_box.size.w, 30),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
     graphics_context_set_text_color(ctx, UI_TEXT);
