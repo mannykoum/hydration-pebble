@@ -630,7 +630,7 @@ static void draw_weekly_view(GContext *ctx, GRect bounds) {
     GRect bar = GRect(bar_x, 26, actual_bar_w, 50);
     
     graphics_context_set_stroke_color(ctx, UI_TEXT);
-    graphics_draw_rect(ctx, bar);
+    graphics_draw_round_rect(ctx, bar, 4);
     
     if (fill_h > 0) {
       graphics_context_set_fill_color(ctx, UI_ACCENT);
@@ -639,19 +639,19 @@ static void draw_weekly_view(GContext *ctx, GRect bounds) {
         int chunk = remaining < 2 ? remaining : 2;
         graphics_fill_rect(ctx, 
           GRect(bar.origin.x + 1, bar.origin.y + bar.size.h - grad - chunk, 
-                bar.size.w - 2, chunk), 0, GCornerNone);
+                bar.size.w - 2, chunk), 4, GCornersAll);
       }
     }
     
     graphics_context_set_text_color(ctx, UI_TEXT);
-    graphics_draw_text(ctx, days[i], fonts_get_system_font(FONT_KEY_GOTHIC_14),
+    graphics_draw_text(ctx, days[i], FONT_CAPTION,
                        GRect(bar_x, 78, actual_bar_w, 18), 
                        GTextOverflowModeTrailingEllipsis,
                        GTextAlignmentCenter, NULL);
   }
 
   graphics_context_set_text_color(ctx, UI_TEXT);
-  graphics_draw_text(ctx, "Last 7 days", fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
+  graphics_draw_text(ctx, "Last 7 days", FONT_BODY,
                      GRect(0, 2, bounds.size.w, 20), GTextOverflowModeTrailingEllipsis,
                      GTextAlignmentCenter, NULL);
 }
@@ -723,7 +723,7 @@ static void draw_celebration(GContext *ctx, GRect bounds) {
   graphics_context_set_text_color(ctx, UI_POSITIVE);
   graphics_draw_text(ctx,
     "GOAL MET!",
-    fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD),
+    FONT_DISPLAY,
     GRect(0, bounds.size.h / 2 - 20, bounds.size.w, 32),
     GTextOverflowModeTrailingEllipsis,
     GTextAlignmentCenter,
@@ -744,7 +744,7 @@ static void draw_celebration(GContext *ctx, GRect bounds) {
     graphics_context_set_fill_color(ctx, color);
     
     if (i % 3 == 0) {
-      graphics_fill_rect(ctx, GRect(confetti_positions[i][0], confetti_positions[i][1], 4, 4), 0, GCornerNone);
+      graphics_fill_rect(ctx, GRect(confetti_positions[i][0], confetti_positions[i][1], 4, 4), 4, GCornersAll);
     } else {
       graphics_fill_circle(ctx, GPoint(confetti_positions[i][0], confetti_positions[i][1]), 2);
     }
