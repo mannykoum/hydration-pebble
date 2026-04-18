@@ -24,6 +24,7 @@ typedef enum {
   VIEW_AMOUNT = 1,
   VIEW_DETAIL = 2,
   VIEW_WEEKLY = 3,
+  VIEW_STATS = 4,
   VIEW_COUNT
 } MainView;
 
@@ -39,6 +40,7 @@ typedef struct {
   int goal_ml;
   int amounts_ml[MAX_AMOUNTS];
   uint8_t unit;
+  int current_streak;
   DayData days[MAX_DAYS];
 } PersistedState;
 
@@ -56,6 +58,12 @@ static int s_last_repeat_direction = 0;
 static bool s_anim_on = false;
 static bool s_celebrating = false;
 static int s_celebration_counter = 0;
+static time_t s_last_intake_time = 0;
+static int s_last_intake_amount = 0;
+static uint8_t s_last_point_count = 0;
+static uint8_t s_milestones_hit = 0;
+static bool s_show_undo_message = false;
+static AppTimer *s_undo_message_timer = NULL;
 
 static const int APP_KEYS[] = {0, 1, 2, 3, 4, 5};
 
@@ -74,6 +82,13 @@ static const GColor UI_ACCENT = GColorBlack;
 static const GColor UI_ACCENT_ALT = GColorBlack;
 static const GColor UI_POSITIVE = GColorBlack;
 #endif
+
+// Typography scale
+#define FONT_DISPLAY fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD)
+#define FONT_TITLE fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD)
+#define FONT_BODY fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD)
+#define FONT_CAPTION fonts_get_system_font(FONT_KEY_GOTHIC_14)
+#define FONT_SMALL fonts_get_system_font(FONT_KEY_GOTHIC_09)
 
 static int day_key_from_time(time_t t) {
   struct tm *tm_now = localtime(&t);
@@ -155,6 +170,7 @@ static DayData *ensure_today_day(void) {
 
 static void reset_if_new_day(void) {
   (void)ensure_today_day();
+  s_milestones_hit = 0;
 }
 
 static DayData *day_by_offset(int offset) {
@@ -172,6 +188,39 @@ static int day_total(int offset) {
   return day ? day->total_ml : 0;
 }
 
+static int calculate_weekly_avg(void) {
+  int sum = 0;
+  int count = 0;
+  for (int i = 0; i < 7; i++) {
+    int total = day_total(i);
+    if (total > 0) {
+      sum += total;
+      count++;
+    }
+  }
+  return count > 0 ? sum / 7 : 0;
+}
+
+static int find_best_day(void) {
+  int best = 0;
+  for (int i = 0; i < MAX_DAYS; i++) {
+    if (s_state.days[i].total_ml > best) {
+      best = s_state.days[i].total_ml;
+    }
+  }
+  return best;
+}
+
+static int count_logged_days(void) {
+  int count = 0;
+  for (int i = 0; i < MAX_DAYS; i++) {
+    if (s_state.days[i].total_ml > 0) {
+      count++;
+    }
+  }
+  return count;
+}
+
 static void send_log_event(int delta_ml, int total_ml, int minute) {
   DictionaryIterator *iter = NULL;
   if (app_message_outbox_begin(&iter) != APP_MSG_OK || !iter) {
@@ -185,6 +234,11 @@ static void send_log_event(int delta_ml, int total_ml, int minute) {
 
 static void add_intake(int delta_ml) {
   DayData *today = ensure_today_day();
+  
+  // Store for undo functionality
+  s_last_intake_time = time(NULL);
+  s_last_intake_amount = delta_ml;
+  
   int next_total = today->total_ml + delta_ml;
   if (next_total < 0) {
     next_total = 0;
@@ -207,6 +261,26 @@ static void add_intake(int delta_ml) {
 
   save_state();
   send_log_event(delta_ml, today->total_ml, minute);
+  
+  // Vibration feedback
+  vibes_short_pulse();
+  
+  // Check for milestone notifications
+  int goal = s_state.goal_ml > 0 ? s_state.goal_ml : 2800;
+  int progress_percent = (today->total_ml * 100) / goal;
+  
+  if (progress_percent >= 50 && !(s_milestones_hit & (1 << 0))) {
+    s_milestones_hit |= (1 << 0);
+    vibes_long_pulse();
+  }
+  if (progress_percent >= 75 && !(s_milestones_hit & (1 << 1))) {
+    s_milestones_hit |= (1 << 1);
+    vibes_long_pulse();
+  }
+  if (progress_percent >= 100 && !(s_milestones_hit & (1 << 2))) {
+    s_milestones_hit |= (1 << 2);
+    vibes_long_pulse();
+  }
 }
 
 static int progress_step(void) {
@@ -223,6 +297,7 @@ static void move_view(MainView new_view) {
   s_edit_amount = false;
   s_selecting_day = false;
   s_repeat_streak = 0;
+  vibes_short_pulse();
   layer_mark_dirty(s_canvas_layer);
 }
 
@@ -260,33 +335,50 @@ static void draw_main_view(GContext *ctx, GRect bounds) {
   graphics_fill_circle(ctx, GPoint(drop_center_x - 1, 13), 4);
   graphics_fill_circle(ctx, GPoint(drop_center_x + 1, 13), 4);
 
-  // Large centered progress text
-  char progress_text[32];
-  snprintf(progress_text, sizeof(progress_text), "%d/%d ml", total, goal);
+  // Circular progress ring
+  int ring_radius = 45;
+  int ring_stroke = 8;
+  GPoint ring_center = GPoint(bounds.size.w / 2, 70);
+  
+  // Calculate progress percentage
+  int progress_pct = (total * 100) / (goal > 0 ? goal : 1);
+  if (progress_pct > 100) progress_pct = 100;
+  int32_t angle_end = (TRIG_MAX_ANGLE * progress_pct) / 100;
+  
+  // Draw ring by drawing multiple stroke circles
+  graphics_context_set_stroke_color(ctx, UI_MUTED);
+  for (int i = 0; i < ring_stroke; i++) {
+    graphics_draw_circle(ctx, ring_center, ring_radius - i / 2);
+  }
+  
+  // Draw filled portion - draw filled arc
+  if (progress_pct > 0) {
+    graphics_context_set_fill_color(ctx, s_anim_on ? UI_ACCENT_ALT : UI_ACCENT);
+    GRect outer_rect = GRect(ring_center.x - ring_radius, ring_center.y - ring_radius, 
+                             ring_radius * 2, ring_radius * 2);
+    graphics_fill_radial(ctx, outer_rect, GOvalScaleModeFitCircle, ring_stroke, 0, angle_end);
+  }
+  
+  // Percentage text centered in ring
+  char progress_text[16];
+  snprintf(progress_text, sizeof(progress_text), "%d%%", progress_pct);
   graphics_context_set_text_color(ctx, UI_TEXT);
-  graphics_draw_text(ctx, progress_text, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
-    GRect(0, 32, bounds.size.w, 28),
+  graphics_draw_text(ctx, progress_text, FONT_DISPLAY,
+    GRect(ring_center.x - 40, ring_center.y - 18, 80, 36),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
-  // Centered progress bar
-  draw_progress_bar(ctx, GRect(16, 62, bounds.size.w - 32, 20), total, goal > 0 ? goal : 1, "");
-
-  // Day progress percentage
-  time_t now = time(NULL);
-  struct tm *tm_now = localtime(&now);
-  int minutes = tm_now->tm_hour * 60 + tm_now->tm_min;
-  int day_progress = (minutes * 100) / (24 * 60);
-  char day_text[32];
-  snprintf(day_text, sizeof(day_text), "Day: %d%%", day_progress);
-  graphics_draw_text(ctx, day_text, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
-    GRect(0, 88, bounds.size.w, 22),
+  // Amount text below ring
+  char amount_text[32];
+  format_amount(total, amount_text, sizeof(amount_text));
+  graphics_draw_text(ctx, amount_text, FONT_TITLE,
+    GRect(0, ring_center.y + ring_radius + 4, bounds.size.w, 28),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
   // Instructions at bottom
   graphics_context_set_text_color(ctx, UI_MUTED);
   graphics_draw_text(ctx,
     s_edit_goal ? "Goal edit: use UP/DOWN" : "Hold SELECT to edit goal",
-    fonts_get_system_font(FONT_KEY_GOTHIC_14),
+    FONT_CAPTION,
     GRect(8, bounds.size.h - 38, bounds.size.w - 16, 32),
     GTextOverflowModeWordWrap,
     GTextAlignmentCenter,
@@ -355,6 +447,7 @@ static void draw_amount_view(GContext *ctx, GRect bounds) {
     if (!s_celebrating && s_celebration_counter == 0) {
       s_celebrating = true;
       s_celebration_counter = 1;
+      vibes_double_pulse();
     }
     graphics_context_set_text_color(ctx, UI_POSITIVE);
     graphics_draw_text(ctx,
@@ -563,6 +656,20 @@ static void canvas_update(Layer *layer, GContext *ctx) {
     case VIEW_WEEKLY: draw_weekly_view(ctx, bounds); break;
     default: break;
   }
+  
+  // Draw undo message overlay if active
+  if (s_show_undo_message) {
+    GRect message_box = GRect(20, bounds.size.h / 2 - 20, bounds.size.w - 40, 40);
+    graphics_context_set_fill_color(ctx, UI_ACCENT);
+    graphics_fill_rect(ctx, message_box, 4, GCornersAll);
+    graphics_context_set_stroke_color(ctx, UI_TEXT);
+    graphics_draw_rect(ctx, message_box);
+    graphics_context_set_text_color(ctx, GColorWhite);
+    graphics_draw_text(ctx, "Undone!", fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+      GRect(message_box.origin.x, message_box.origin.y + 8, message_box.size.w, 30),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    graphics_context_set_text_color(ctx, UI_TEXT);
+  }
 }
 
 static void select_single_handler(ClickRecognizerRef recognizer, void *context) {
@@ -584,6 +691,12 @@ static void select_long_handler(ClickRecognizerRef recognizer, void *context) {
   layer_mark_dirty(s_canvas_layer);
 }
 
+static void hide_undo_message(void *data) {
+  s_show_undo_message = false;
+  s_undo_message_timer = NULL;
+  layer_mark_dirty(s_canvas_layer);
+}
+
 static void back_handler(ClickRecognizerRef recognizer, void *context) {
   if (s_edit_goal || s_edit_amount || s_selecting_day) {
     s_edit_goal = false;
@@ -591,6 +704,37 @@ static void back_handler(ClickRecognizerRef recognizer, void *context) {
     s_selecting_day = false;
     save_state();
     layer_mark_dirty(s_canvas_layer);
+  } else {
+    // Check for undo functionality (within 10 seconds)
+    time_t now = time(NULL);
+    if (s_last_intake_amount != 0 && (now - s_last_intake_time) <= 10) {
+      // Undo the last intake
+      DayData *today = ensure_today_day();
+      today->total_ml -= s_last_intake_amount;
+      if (today->total_ml < 0) {
+        today->total_ml = 0;
+      }
+      
+      // Restore point_count to state before last intake
+      today->point_count = s_last_point_count;
+      
+      save_state();
+      
+      // Clear undo data (only works once)
+      s_last_intake_amount = 0;
+      s_last_intake_time = 0;
+      s_last_point_count = 0;
+      
+      // Show "Undone!" message
+      s_show_undo_message = true;
+      if (s_undo_message_timer) {
+        app_timer_cancel(s_undo_message_timer);
+      }
+      s_undo_message_timer = app_timer_register(2000, hide_undo_message, NULL);
+      
+      vibes_short_pulse();
+      layer_mark_dirty(s_canvas_layer);
+    }
   }
 }
 
