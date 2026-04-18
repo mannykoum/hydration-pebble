@@ -58,12 +58,12 @@ static bool s_anim_on = false;
 static const int APP_KEYS[] = {0, 1, 2, 3, 4, 5};
 
 #ifdef PBL_COLOR
-static const GColor UI_BG = GColorOxfordBlue;
+static const GColor UI_BG = GColorBlack;
 static const GColor UI_TEXT = GColorWhite;
-static const GColor UI_MUTED = GColorLightGray;
-static const GColor UI_ACCENT = GColorVividCerulean;
+static const GColor UI_MUTED = GColorDarkGray;
+static const GColor UI_ACCENT = GColorCyan;
 static const GColor UI_ACCENT_ALT = GColorCyan;
-static const GColor UI_POSITIVE = GColorMalachite;
+static const GColor UI_POSITIVE = GColorBrightGreen;
 #else
 static const GColor UI_BG = GColorWhite;
 static const GColor UI_TEXT = GColorBlack;
@@ -322,9 +322,34 @@ static void draw_amount_view(GContext *ctx, GRect bounds) {
 
 static void draw_detail_view(GContext *ctx, GRect bounds) {
   DayData *day = day_by_offset(s_selected_day_offset);
+  
+  char heading[32];
+  if (s_selected_day_offset == 0) {
+    snprintf(heading, sizeof(heading), "Today");
+  } else {
+    snprintf(heading, sizeof(heading), "%d day%s ago", s_selected_day_offset,
+             s_selected_day_offset == 1 ? "" : "s");
+  }
+  graphics_draw_text(ctx, heading, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+    GRect(8, 0, bounds.size.w - 16, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+  if (!day) {
+    graphics_draw_text(ctx, "No data", fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
+      GRect(0, bounds.size.h / 2 - 9, bounds.size.w, 18),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    graphics_draw_text(ctx,
+      s_selecting_day ? "Up/down choose day" : "Select to choose day",
+      fonts_get_system_font(FONT_KEY_GOTHIC_14),
+      GRect(0, bounds.size.h - 16, bounds.size.w, 16),
+      GTextOverflowModeTrailingEllipsis,
+      GTextAlignmentCenter,
+      NULL);
+    return;
+  }
+
   int goal = s_state.goal_ml;
   int max_value = goal;
-  if (day && day->total_ml > max_value) {
+  if (day->total_ml > max_value) {
     max_value = day->total_ml;
   }
   if (max_value < 1) {
@@ -334,6 +359,7 @@ static void draw_detail_view(GContext *ctx, GRect bounds) {
   GRect plot = GRect(8, 20, bounds.size.w - 16, bounds.size.h - 40);
   graphics_draw_rect(ctx, plot);
 
+  graphics_context_set_stroke_color(ctx, UI_MUTED);
   for (int i = 1; i <= 3; i++) {
     int y = plot.origin.y + (plot.size.h * i) / 4;
     graphics_draw_line(ctx, GPoint(plot.origin.x, y), GPoint(plot.origin.x + plot.size.w, y));
@@ -341,11 +367,12 @@ static void draw_detail_view(GContext *ctx, GRect bounds) {
     char label[12];
     int mark = max_value - (max_value * i / 4);
     snprintf(label, sizeof(label), "%d", mark);
-    graphics_draw_text(ctx, label, fonts_get_system_font(FONT_KEY_GOTHIC_09),
-      GRect(plot.origin.x + 2, y - 7, 24, 8), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+    graphics_context_set_text_color(ctx, UI_MUTED);
+    graphics_draw_text(ctx, label, fonts_get_system_font(FONT_KEY_GOTHIC_14),
+      GRect(plot.origin.x + 2, y - 10, 30, 14), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
 
-  if (day && day->point_count > 0) {
+  if (day->point_count > 0) {
     GPoint last = GPoint(plot.origin.x, plot.origin.y + plot.size.h);
     for (uint8_t i = 0; i < day->point_count; i++) {
       int x = plot.origin.x + (day->minutes[i] * plot.size.w) / (24 * 60);
@@ -359,16 +386,6 @@ static void draw_detail_view(GContext *ctx, GRect bounds) {
       last = point;
     }
   }
-
-  char heading[32];
-  if (s_selected_day_offset == 0) {
-    snprintf(heading, sizeof(heading), "Today");
-  } else {
-    snprintf(heading, sizeof(heading), "%d day%s ago", s_selected_day_offset,
-             s_selected_day_offset == 1 ? "" : "s");
-  }
-  graphics_draw_text(ctx, heading, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
-    GRect(8, 0, bounds.size.w - 16, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
   graphics_draw_text(ctx,
     s_selecting_day ? "Up/down choose day" : "Select to choose day",
@@ -394,7 +411,7 @@ static void draw_weekly_view(GContext *ctx, GRect bounds) {
     GRect bar = GRect(6 + i * bar_w, 26, bar_w - 2, 50);
     graphics_draw_rect(ctx, bar);
     if (fill_h > 0) {
-      graphics_context_set_fill_color(ctx, GColorBlack);
+      graphics_context_set_fill_color(ctx, UI_ACCENT);
       graphics_fill_rect(ctx, GRect(bar.origin.x + 1, bar.origin.y + bar.size.h - fill_h, bar.size.w - 2, fill_h), 0, GCornerNone);
     }
   }
@@ -536,9 +553,16 @@ static void click_config_provider(void *context) {
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  s_anim_on = !s_anim_on;
+  static uint8_t tick_count = 0;
+  
   reset_if_new_day();
-  layer_mark_dirty(s_canvas_layer);
+  
+  tick_count++;
+  if (tick_count >= 2) {
+    tick_count = 0;
+    s_anim_on = !s_anim_on;
+    layer_mark_dirty(s_canvas_layer);
+  }
 }
 
 static void inbox_received_callback(DictionaryIterator *iter, void *context) {
@@ -615,7 +639,7 @@ static void init(void) {
   app_message_register_inbox_dropped(inbox_dropped_callback);
   app_message_open(256, 64);
 
-  tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+  tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
 }
 
 static void deinit(void) {
