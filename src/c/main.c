@@ -162,6 +162,18 @@ static DayData *ensure_today_day(void) {
     return &s_state.days[idx];
   }
 
+  // Check if yesterday met goal to update streak
+  time_t yesterday_time = now - 24 * 60 * 60;
+  int yesterday_key = day_key_from_time(yesterday_time);
+  int yesterday_idx = find_day_index(yesterday_key);
+  int goal = s_state.goal_ml > 0 ? s_state.goal_ml : 2800;
+  
+  if (yesterday_idx >= 0 && s_state.days[yesterday_idx].total_ml >= goal) {
+    s_state.current_streak++;
+  } else {
+    s_state.current_streak = 0;
+  }
+
   idx = oldest_day_index();
   memset(&s_state.days[idx], 0, sizeof(DayData));
   s_state.days[idx].date_key = key;
@@ -198,7 +210,7 @@ static int calculate_weekly_avg(void) {
       count++;
     }
   }
-  return count > 0 ? sum / 7 : 0;
+  return count > 0 ? sum / count : 0;
 }
 
 static int find_best_day(void) {
@@ -303,7 +315,7 @@ static void move_view(MainView new_view) {
 
 static void draw_progress_bar(GContext *ctx, GRect frame, int numerator, int denominator, const char *label) {
   graphics_context_set_stroke_color(ctx, UI_MUTED);
-  graphics_draw_rect(ctx, frame);
+  graphics_draw_round_rect(ctx, frame, 4);
 
   int fill_width = 0;
   if (denominator > 0 && numerator > 0) {
@@ -335,7 +347,7 @@ static void draw_main_view(GContext *ctx, GRect bounds) {
   graphics_fill_circle(ctx, GPoint(drop_center_x - 1, 13), 4);
   graphics_fill_circle(ctx, GPoint(drop_center_x + 1, 13), 4);
 
-  // Circular progress ring
+  // Circular progress ring (dev: rounded corners with graphics_fill_radial)
   int ring_radius = 45;
   int ring_stroke = 8;
   GPoint ring_center = GPoint(bounds.size.w / 2, 70);
@@ -351,7 +363,7 @@ static void draw_main_view(GContext *ctx, GRect bounds) {
     graphics_draw_circle(ctx, ring_center, ring_radius - i / 2);
   }
   
-  // Draw filled portion - draw filled arc
+  // Draw filled portion - draw filled arc with rounded corners
   if (progress_pct > 0) {
     graphics_context_set_fill_color(ctx, s_anim_on ? UI_ACCENT_ALT : UI_ACCENT);
     GRect outer_rect = GRect(ring_center.x - ring_radius, ring_center.y - ring_radius, 
@@ -359,7 +371,7 @@ static void draw_main_view(GContext *ctx, GRect bounds) {
     graphics_fill_radial(ctx, outer_rect, GOvalScaleModeFitCircle, ring_stroke, 0, angle_end);
   }
   
-  // Percentage text centered in ring
+  // Percentage text centered in ring (using typography constants)
   char progress_text[16];
   snprintf(progress_text, sizeof(progress_text), "%d%%", progress_pct);
   graphics_context_set_text_color(ctx, UI_TEXT);
@@ -367,12 +379,59 @@ static void draw_main_view(GContext *ctx, GRect bounds) {
     GRect(ring_center.x - 40, ring_center.y - 18, 80, 36),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
-  // Amount text below ring
+  // Amount text below ring (using typography constants)
   char amount_text[32];
   format_amount(total, amount_text, sizeof(amount_text));
   graphics_draw_text(ctx, amount_text, FONT_TITLE,
     GRect(0, ring_center.y + ring_radius + 4, bounds.size.w, 28),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+  // Day progress percentage (using typography constants)
+  time_t now = time(NULL);
+  struct tm *tm_now = localtime(&now);
+  int minutes = tm_now->tm_hour * 60 + tm_now->tm_min;
+  int day_progress = (minutes * 100) / (24 * 60);
+  char day_text[32];
+  snprintf(day_text, sizeof(day_text), "Day: %d%%", day_progress);
+  graphics_draw_text(ctx, day_text, FONT_BODY,
+    GRect(0, 128, bounds.size.w, 22),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+  // Streak badge (top right corner)
+  if (s_state.current_streak > 0) {
+    int badge_x = bounds.size.w - 36;
+    int badge_y = 8;
+    
+    // Draw flame icon using graphics primitives
+    graphics_context_set_fill_color(ctx, UI_POSITIVE);
+    
+    // Flame base (triangle)
+    GPoint flame_points[3];
+    flame_points[0] = GPoint(badge_x + 8, badge_y + 18);
+    flame_points[1] = GPoint(badge_x + 16, badge_y + 18);
+    flame_points[2] = GPoint(badge_x + 12, badge_y + 4);
+    GPathInfo flame_path_info = {
+      .num_points = 3,
+      .points = flame_points
+    };
+    GPath *flame_path = gpath_create(&flame_path_info);
+    gpath_draw_filled(ctx, flame_path);
+    gpath_destroy(flame_path);
+    
+    // Flame tip circles
+    graphics_fill_circle(ctx, GPoint(badge_x + 12, badge_y + 6), 3);
+    graphics_fill_circle(ctx, GPoint(badge_x + 10, badge_y + 10), 2);
+    graphics_fill_circle(ctx, GPoint(badge_x + 14, badge_y + 10), 2);
+    
+    // Streak number
+    char streak_text[8];
+    snprintf(streak_text, sizeof(streak_text), "%d", s_state.current_streak);
+    graphics_context_set_text_color(ctx, UI_POSITIVE);
+    graphics_draw_text(ctx, streak_text, FONT_CAPTION,
+      GRect(badge_x - 4, badge_y + 16, 32, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    graphics_context_set_text_color(ctx, UI_TEXT);
+  }
 
   // Instructions at bottom
   graphics_context_set_text_color(ctx, UI_MUTED);
@@ -413,7 +472,7 @@ static void draw_amount_view(GContext *ctx, GRect bounds) {
   graphics_draw_line(ctx, GPoint(cup_x, cup_y + 1), GPoint(cup_x + cup_width, cup_y + 1));
   
   // Cup body (tapered sides)
-  graphics_draw_rect(ctx, GRect(cup_x + 2, cup_y + 2, cup_width - 4, cup_height - 8));
+  graphics_draw_round_rect(ctx, GRect(cup_x + 2, cup_y + 2, cup_width - 4, cup_height - 8), 4);
   graphics_draw_line(ctx, GPoint(cup_x, cup_y), GPoint(cup_x + 2, cup_y + cup_height - 6));
   graphics_draw_line(ctx, GPoint(cup_x + cup_width, cup_y), GPoint(cup_x + cup_width - 2, cup_y + cup_height - 6));
   
@@ -571,7 +630,7 @@ static void draw_weekly_view(GContext *ctx, GRect bounds) {
     GRect bar = GRect(bar_x, 26, actual_bar_w, 50);
     
     graphics_context_set_stroke_color(ctx, UI_TEXT);
-    graphics_draw_rect(ctx, bar);
+    graphics_draw_round_rect(ctx, bar, 4);
     
     if (fill_h > 0) {
       graphics_context_set_fill_color(ctx, UI_ACCENT);
@@ -595,6 +654,66 @@ static void draw_weekly_view(GContext *ctx, GRect bounds) {
   graphics_draw_text(ctx, "Last 7 days", FONT_BODY,
                      GRect(0, 2, bounds.size.w, 20), GTextOverflowModeTrailingEllipsis,
                      GTextAlignmentCenter, NULL);
+}
+
+static void draw_stats_view(GContext *ctx, GRect bounds) {
+  int weekly_avg = calculate_weekly_avg();
+  int best_day = find_best_day();
+  int logged_days = count_logged_days();
+  int streak = s_state.current_streak;
+  
+  graphics_context_set_text_color(ctx, UI_TEXT);
+  
+  // Title (using typography constants)
+  graphics_draw_text(ctx, "Statistics", FONT_BODY,
+                     GRect(0, 8, bounds.size.w, 22),
+                     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  
+  int y_offset = 36;
+  int line_height = 32;
+  
+  // Weekly Average (using typography constants)
+  graphics_draw_text(ctx, "Weekly Average:", FONT_BODY,
+                     GRect(8, y_offset, bounds.size.w - 16, 22),
+                     GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+  char avg_text[16];
+  snprintf(avg_text, sizeof(avg_text), "%d ml", weekly_avg);
+  graphics_draw_text(ctx, avg_text, FONT_TITLE,
+                     GRect(8, y_offset + 20, bounds.size.w - 16, 28),
+                     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  
+  y_offset += line_height + 16;
+  
+  // Best Day (using typography constants)
+  graphics_draw_text(ctx, "Best Day:", FONT_BODY,
+                     GRect(8, y_offset, bounds.size.w - 16, 22),
+                     GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+  char best_text[16];
+  snprintf(best_text, sizeof(best_text), "%d ml", best_day);
+  graphics_draw_text(ctx, best_text, FONT_TITLE,
+                     GRect(8, y_offset + 20, bounds.size.w - 16, 28),
+                     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  
+  y_offset += line_height + 16;
+  
+  // Current Streak (using typography constants)
+  graphics_draw_text(ctx, "Current Streak:", FONT_BODY,
+                     GRect(8, y_offset, bounds.size.w - 16, 22),
+                     GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+  char streak_text[16];
+  snprintf(streak_text, sizeof(streak_text), "%d days", streak);
+  graphics_draw_text(ctx, streak_text, FONT_TITLE,
+                     GRect(8, y_offset + 20, bounds.size.w - 16, 28),
+                     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  
+  // Total Logged Days (smaller, at bottom, using typography constants)
+  char total_text[32];
+  snprintf(total_text, sizeof(total_text), "Total: %d days logged", logged_days);
+  graphics_context_set_text_color(ctx, UI_MUTED);
+  graphics_draw_text(ctx, total_text, FONT_CAPTION,
+                     GRect(8, bounds.size.h - 24, bounds.size.w - 16, 18),
+                     GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  graphics_context_set_text_color(ctx, UI_TEXT);
 }
 
 static void draw_celebration(GContext *ctx, GRect bounds) {
@@ -625,7 +744,7 @@ static void draw_celebration(GContext *ctx, GRect bounds) {
     graphics_context_set_fill_color(ctx, color);
     
     if (i % 3 == 0) {
-      graphics_fill_rect(ctx, GRect(confetti_positions[i][0], confetti_positions[i][1], 4, 4), 2, GCornersAll);
+      graphics_fill_rect(ctx, GRect(confetti_positions[i][0], confetti_positions[i][1], 4, 4), 4, GCornersAll);
     } else {
       graphics_fill_circle(ctx, GPoint(confetti_positions[i][0], confetti_positions[i][1]), 2);
     }
@@ -654,6 +773,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
     case VIEW_AMOUNT: draw_amount_view(ctx, bounds); break;
     case VIEW_DETAIL: draw_detail_view(ctx, bounds); break;
     case VIEW_WEEKLY: draw_weekly_view(ctx, bounds); break;
+    case VIEW_STATS: draw_stats_view(ctx, bounds); break;
     default: break;
   }
   
@@ -800,7 +920,15 @@ static void apply_delta(int direction) {
       move_view(VIEW_DETAIL);
       return;
     }
-    /* up from weekly: do nothing */
+    /* up from weekly: go to stats */
+    move_view(VIEW_STATS);
+    return;
+  } else if (s_view == VIEW_STATS) {
+    if (direction == -1) {
+      move_view(VIEW_WEEKLY);
+      return;
+    }
+    /* up from stats: do nothing */
   }
 
   layer_mark_dirty(s_canvas_layer);
