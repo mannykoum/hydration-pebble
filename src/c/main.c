@@ -60,6 +60,7 @@ static bool s_celebrating = false;
 static int s_celebration_counter = 0;
 static time_t s_last_intake_time = 0;
 static int s_last_intake_amount = 0;
+static uint8_t s_last_point_count = 0;
 static uint8_t s_milestones_hit = 0;
 static bool s_show_undo_message = false;
 static AppTimer *s_undo_message_timer = NULL;
@@ -714,16 +715,15 @@ static void back_handler(ClickRecognizerRef recognizer, void *context) {
         today->total_ml = 0;
       }
       
-      // Remove last data point if it exists
-      if (today->point_count > 0) {
-        today->point_count--;
-      }
+      // Restore point_count to state before last intake
+      today->point_count = s_last_point_count;
       
       save_state();
       
       // Clear undo data (only works once)
       s_last_intake_amount = 0;
       s_last_intake_time = 0;
+      s_last_point_count = 0;
       
       // Show "Undone!" message
       s_show_undo_message = true;
