@@ -313,11 +313,11 @@ static void draw_progress_bar(GContext *ctx, GRect frame, int numerator, int den
 
   if (fill_width > 0) {
     graphics_context_set_fill_color(ctx, s_anim_on ? UI_ACCENT_ALT : UI_ACCENT);
-    graphics_fill_rect(ctx, GRect(frame.origin.x + 1, frame.origin.y + 1, fill_width - 1, frame.size.h - 1), 0, GCornerNone);
+    graphics_fill_rect(ctx, GRect(frame.origin.x + 1, frame.origin.y + 1, fill_width - 1, frame.size.h - 1), 4, GCornersAll);
   }
 
   graphics_context_set_text_color(ctx, UI_MUTED);
-  graphics_draw_text(ctx, label, fonts_get_system_font(FONT_KEY_GOTHIC_14),
+  graphics_draw_text(ctx, label, FONT_CAPTION,
     GRect(frame.origin.x, frame.origin.y - 16, frame.size.w, 14),
     GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   graphics_context_set_text_color(ctx, UI_TEXT);
@@ -424,7 +424,7 @@ static void draw_amount_view(GContext *ctx, GRect bounds) {
   // Water level indicator (fills 60% of cup)
   int water_height = (cup_height - 10) * 6 / 10;
   graphics_context_set_fill_color(ctx, UI_ACCENT);
-  graphics_fill_rect(ctx, GRect(cup_x + 4, cup_y + cup_height - 8 - water_height, cup_width - 8, water_height), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(cup_x + 4, cup_y + cup_height - 8 - water_height, cup_width - 8, water_height), 4, GCornersAll);
 
   for (int i = 0; i < MAX_AMOUNTS; i++) {
     char line[20];
@@ -432,13 +432,13 @@ static void draw_amount_view(GContext *ctx, GRect bounds) {
     GRect row = GRect(34, 12 + i * 24, bounds.size.w - 40, 22);
     if (i == s_selected_amount) {
       graphics_context_set_fill_color(ctx, s_anim_on ? UI_ACCENT_ALT : UI_ACCENT);
-      graphics_fill_rect(ctx, row, 0, GCornerNone);
+      graphics_fill_rect(ctx, row, 4, GCornersAll);
       graphics_context_set_text_color(ctx, GColorWhite);
     } else {
       graphics_context_set_text_color(ctx, UI_TEXT);
     }
 
-    graphics_draw_text(ctx, line, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), row,
+    graphics_draw_text(ctx, line, FONT_BODY, row,
                        GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
   graphics_context_set_text_color(ctx, UI_TEXT);
@@ -452,7 +452,7 @@ static void draw_amount_view(GContext *ctx, GRect bounds) {
     graphics_context_set_text_color(ctx, UI_POSITIVE);
     graphics_draw_text(ctx,
       s_anim_on ? "Goal met!" : "Great job!",
-      fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+      FONT_CAPTION,
       GRect(0, bounds.size.h - 20, bounds.size.w, 18),
       GTextOverflowModeTrailingEllipsis,
       GTextAlignmentCenter,
@@ -461,7 +461,7 @@ static void draw_amount_view(GContext *ctx, GRect bounds) {
   } else {
     graphics_draw_text(ctx,
       s_edit_amount ? "Amount edit: use UP/DOWN" : "SELECT: add/remove, Hold SELECT: edit",
-      fonts_get_system_font(FONT_KEY_GOTHIC_14),
+      FONT_CAPTION,
       GRect(0, bounds.size.h - 20, bounds.size.w, 18),
       GTextOverflowModeTrailingEllipsis,
       GTextAlignmentCenter,
@@ -479,16 +479,16 @@ static void draw_detail_view(GContext *ctx, GRect bounds) {
     snprintf(heading, sizeof(heading), "%d day%s ago", s_selected_day_offset,
              s_selected_day_offset == 1 ? "" : "s");
   }
-  graphics_draw_text(ctx, heading, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+  graphics_draw_text(ctx, heading, FONT_CAPTION,
     GRect(8, 0, bounds.size.w - 16, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
   if (!day) {
-    graphics_draw_text(ctx, "No data", fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
+    graphics_draw_text(ctx, "No data", FONT_BODY,
       GRect(0, bounds.size.h / 2 - 9, bounds.size.w, 18),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
     graphics_draw_text(ctx,
       s_selecting_day ? "Up/down choose day" : "Select to choose day",
-      fonts_get_system_font(FONT_KEY_GOTHIC_14),
+      FONT_CAPTION,
       GRect(0, bounds.size.h - 16, bounds.size.w, 16),
       GTextOverflowModeTrailingEllipsis,
       GTextAlignmentCenter,
@@ -517,7 +517,7 @@ static void draw_detail_view(GContext *ctx, GRect bounds) {
     int mark = max_value - (max_value * i / 4);
     snprintf(label, sizeof(label), "%d", mark);
     graphics_context_set_text_color(ctx, UI_MUTED);
-    graphics_draw_text(ctx, label, fonts_get_system_font(FONT_KEY_GOTHIC_14),
+    graphics_draw_text(ctx, label, FONT_CAPTION,
       GRect(plot.origin.x + 2, y - 10, 30, 14), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
 
@@ -541,7 +541,7 @@ static void draw_detail_view(GContext *ctx, GRect bounds) {
 
   graphics_draw_text(ctx,
     s_selecting_day ? "Up/down choose day" : "Select to choose day",
-    fonts_get_system_font(FONT_KEY_GOTHIC_14),
+    FONT_CAPTION,
     GRect(0, bounds.size.h - 16, bounds.size.w, 16),
     GTextOverflowModeTrailingEllipsis,
     GTextAlignmentCenter,
@@ -580,19 +580,19 @@ static void draw_weekly_view(GContext *ctx, GRect bounds) {
         int chunk = remaining < 2 ? remaining : 2;
         graphics_fill_rect(ctx, 
           GRect(bar.origin.x + 1, bar.origin.y + bar.size.h - grad - chunk, 
-                bar.size.w - 2, chunk), 0, GCornerNone);
+                bar.size.w - 2, chunk), 4, GCornersAll);
       }
     }
     
     graphics_context_set_text_color(ctx, UI_TEXT);
-    graphics_draw_text(ctx, days[i], fonts_get_system_font(FONT_KEY_GOTHIC_14),
+    graphics_draw_text(ctx, days[i], FONT_CAPTION,
                        GRect(bar_x, 78, actual_bar_w, 18), 
                        GTextOverflowModeTrailingEllipsis,
                        GTextAlignmentCenter, NULL);
   }
 
   graphics_context_set_text_color(ctx, UI_TEXT);
-  graphics_draw_text(ctx, "Last 7 days", fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
+  graphics_draw_text(ctx, "Last 7 days", FONT_BODY,
                      GRect(0, 2, bounds.size.w, 20), GTextOverflowModeTrailingEllipsis,
                      GTextAlignmentCenter, NULL);
 }
@@ -604,7 +604,7 @@ static void draw_celebration(GContext *ctx, GRect bounds) {
   graphics_context_set_text_color(ctx, UI_POSITIVE);
   graphics_draw_text(ctx,
     "GOAL MET!",
-    fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD),
+    FONT_DISPLAY,
     GRect(0, bounds.size.h / 2 - 20, bounds.size.w, 32),
     GTextOverflowModeTrailingEllipsis,
     GTextAlignmentCenter,
@@ -625,7 +625,7 @@ static void draw_celebration(GContext *ctx, GRect bounds) {
     graphics_context_set_fill_color(ctx, color);
     
     if (i % 3 == 0) {
-      graphics_fill_rect(ctx, GRect(confetti_positions[i][0], confetti_positions[i][1], 4, 4), 0, GCornerNone);
+      graphics_fill_rect(ctx, GRect(confetti_positions[i][0], confetti_positions[i][1], 4, 4), 2, GCornersAll);
     } else {
       graphics_fill_circle(ctx, GPoint(confetti_positions[i][0], confetti_positions[i][1]), 2);
     }
@@ -665,7 +665,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
     graphics_context_set_stroke_color(ctx, UI_TEXT);
     graphics_draw_rect(ctx, message_box);
     graphics_context_set_text_color(ctx, GColorWhite);
-    graphics_draw_text(ctx, "Undone!", fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+    graphics_draw_text(ctx, "Undone!", FONT_TITLE,
       GRect(message_box.origin.x, message_box.origin.y + 8, message_box.size.w, 30),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
     graphics_context_set_text_color(ctx, UI_TEXT);
