@@ -210,7 +210,7 @@ static int calculate_weekly_avg(void) {
       count++;
     }
   }
-  return count > 0 ? sum / 7 : 0;
+  return count > 0 ? sum / count : 0;
 }
 
 static int find_best_day(void) {
@@ -427,7 +427,7 @@ static void draw_main_view(GContext *ctx, GRect bounds) {
     char streak_text[8];
     snprintf(streak_text, sizeof(streak_text), "%d", s_state.current_streak);
     graphics_context_set_text_color(ctx, UI_POSITIVE);
-    graphics_draw_text(ctx, streak_text, fonts_get_system_font(FONT_KEY_GOTHIC_14),
+    graphics_draw_text(ctx, streak_text, FONT_CAPTION,
       GRect(badge_x - 4, badge_y + 16, 32, 16),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
     graphics_context_set_text_color(ctx, UI_TEXT);
