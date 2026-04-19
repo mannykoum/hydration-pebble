@@ -9,10 +9,10 @@ void draw_stats_view(GContext *ctx, GRect bounds, UIState *ui_state) {
   int logged_days = count_logged_days(ui_state->state);
   int streak = ui_state->state->current_streak;
 
-  // If today's goal is met, streak is at least 1
-  DayData *today = ensure_today_day(ui_state->state);
-  if (today->total_ml >= ui_state->state->goal_ml && streak == 0) {
-    streak = 1;
+  // If today's goal is met, display streak includes today
+  DayData *today = day_by_offset(ui_state->state, 0);
+  if (today && today->total_ml >= ui_state->state->goal_ml) {
+    streak = ui_state->state->current_streak + 1;
   }
 
   graphics_context_set_text_color(ctx, UI_TEXT);
