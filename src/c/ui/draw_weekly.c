@@ -35,7 +35,7 @@ void draw_weekly_view(GContext *ctx, GRect bounds, UIState *ui_state) {
     if (fill_h > 0) {
       graphics_context_set_fill_color(ctx, UI_ACCENT);
       graphics_fill_rect(ctx, 
-        GRect(bar.origin.x + 1, bar.origin.y + bar.size.h - 1 - fill_h, 
+        GRect(bar.origin.x + 1, bar.origin.y + bar.size.h - 2 - fill_h, 
               bar.size.w - 2, fill_h), 0, GCornerNone);
     }
     
