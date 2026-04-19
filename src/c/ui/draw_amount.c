@@ -64,7 +64,7 @@ void draw_amount_view(GContext *ctx, GRect bounds, UIState *ui_state) {
     graphics_draw_text(ctx,
       ui_state->anim_on ? "Goal met!" : "Great job!",
       FONT_CAPTION,
-      GRect(0, bounds.size.h - 32, bounds.size.w, 30),
+      GRect(0, bounds.size.h - 34, bounds.size.w, 32),
       GTextOverflowModeTrailingEllipsis,
       GTextAlignmentCenter,
       NULL);
@@ -73,7 +73,7 @@ void draw_amount_view(GContext *ctx, GRect bounds, UIState *ui_state) {
     graphics_draw_text(ctx,
       ui_state->edit_amount ? "UP/DOWN: edit amount" : "SELECT: add/remove\nHold: edit amount",
       FONT_CAPTION,
-      GRect(0, bounds.size.h - 32, bounds.size.w, 30),
+      GRect(0, bounds.size.h - 34, bounds.size.w, 32),
       GTextOverflowModeWordWrap,
       GTextAlignmentCenter,
       NULL);
