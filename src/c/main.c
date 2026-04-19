@@ -68,7 +68,8 @@ static void canvas_update(Layer *layer, GContext *ctx) {
     .celebration_counter = s_celebration_counter,
     .show_undo_message = s_show_undo_message,
     .milestones_hit = s_milestones_hit,
-    .anim_on = s_anim_on
+    .anim_on = s_anim_on,
+    .celebration_played_today = s_celebration_played_today
   };
 
   if (s_celebrating) {
@@ -278,11 +279,12 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   
   reset_if_new_day(&s_state, &s_milestones_hit);
   
-  // Reset celebration flag on new day
-  DayData *today = ensure_today_day(&s_state);
-  int today_key = day_key_from_time(time(NULL));
-  if (today->date_key == today_key && today->total_ml == 0) {
+  // Reset celebration flag on new day by tracking last reset date
+  static int s_last_celebration_reset_key = 0;
+  int current_day_key = day_key_from_time(time(NULL));
+  if (current_day_key != s_last_celebration_reset_key) {
     s_celebration_played_today = false;
+    s_last_celebration_reset_key = current_day_key;
   }
   
   tick_count++;
