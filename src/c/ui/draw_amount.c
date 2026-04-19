@@ -47,7 +47,7 @@ void draw_amount_view(GContext *ctx, GRect bounds, UIState *ui_state) {
     format_amount(ui_state->state, ui_state->state->amounts_ml[i], line, sizeof(line));
     GRect row = GRect(34, 12 + i * 24, bounds.size.w - 40, 22);
     if (i == ui_state->selected_amount) {
-      graphics_context_set_fill_color(ctx, ui_state->anim_on ? UI_ACCENT_ALT : UI_ACCENT);
+      graphics_context_set_fill_color(ctx, UI_ACCENT);
       graphics_fill_rect(ctx, row, 4, GCornersAll);
       graphics_context_set_text_color(ctx, GColorWhite);
     } else {

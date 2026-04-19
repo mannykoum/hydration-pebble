@@ -57,7 +57,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   // 2px screen border
   graphics_context_set_stroke_color(ctx, UI_ACCENT);
   graphics_draw_rect(ctx, bounds);
-  graphics_draw_rect(ctx, GRect(1, 1, bounds.size.w - 2, bounds.size.h - 2));
+  graphics_draw_rect(ctx, GRect(2, 2, bounds.size.w - 4, bounds.size.h - 4));
 
   graphics_context_set_text_color(ctx, UI_TEXT);
 
