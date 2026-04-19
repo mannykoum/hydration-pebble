@@ -17,10 +17,12 @@ static void sanitize_state(PersistedState *state) {
     state->goal_ml = 2800;
   }
 
-  // Validate amounts
+  // Validate amounts (allow negative for "remove" options)
+  int defaults[] = {250, 500, 750, 1000, 237, -237};
   for (int i = 0; i < MAX_AMOUNTS; i++) {
-    if (state->amounts_ml[i] <= 0 || state->amounts_ml[i] > MAX_DAILY_ML) {
-      int defaults[] = {250, 500, 750, 1000};
+    if (state->amounts_ml[i] == 0 ||
+        state->amounts_ml[i] > MAX_DAILY_ML ||
+        state->amounts_ml[i] < -MAX_DAILY_ML) {
       state->amounts_ml[i] = defaults[i];
     }
   }
@@ -56,6 +58,8 @@ void state_load(PersistedState *state) {
     state->amounts_ml[1] = 500;
     state->amounts_ml[2] = 750;
     state->amounts_ml[3] = 1000;
+    state->amounts_ml[4] = 237;
+    state->amounts_ml[5] = -237;
     state->unit = UNIT_ML;
   }
 }

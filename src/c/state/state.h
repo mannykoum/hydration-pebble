@@ -2,7 +2,7 @@
 #include <pebble.h>
 
 #define STORAGE_KEY_STATE 1
-#define MAX_AMOUNTS 4
+#define MAX_AMOUNTS 6
 #define MAX_DAYS 14
 #define MAX_POINTS 32
 

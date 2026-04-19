@@ -9,7 +9,7 @@
 #define REPEAT_STEP_BASE 10
 #define REPEAT_STEP_INCREMENT 15
 
-static const int APP_KEYS[] = {0, 1, 2, 3, 4, 5};
+static const int APP_KEYS_AMOUNTS[] = {2, 3, 4, 5, 9, 10};
 
 static PersistedState s_state;
 static Window *s_main_window;
@@ -302,8 +302,8 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 }
 
 static void inbox_received_callback(DictionaryIterator *iter, void *context) {
-  Tuple *goal_t = dict_find(iter, APP_KEYS[0]);
-  Tuple *unit_t = dict_find(iter, APP_KEYS[1]);
+  Tuple *goal_t = dict_find(iter, 0);
+  Tuple *unit_t = dict_find(iter, 1);
 
   if (goal_t) {
     s_state.goal_ml = goal_t->value->int32;
@@ -313,7 +313,7 @@ static void inbox_received_callback(DictionaryIterator *iter, void *context) {
   }
 
   for (int i = 0; i < MAX_AMOUNTS; i++) {
-    Tuple *amount_t = dict_find(iter, APP_KEYS[2 + i]);
+    Tuple *amount_t = dict_find(iter, APP_KEYS_AMOUNTS[i]);
     if (amount_t) {
       s_state.amounts_ml[i] = amount_t->value->int32;
     }
