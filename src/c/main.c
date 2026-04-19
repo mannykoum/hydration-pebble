@@ -53,6 +53,12 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   graphics_context_set_fill_color(ctx, UI_BG);
   graphics_fill_rect(ctx, bounds, 0, GCornerNone);
+
+  // 2px screen border
+  graphics_context_set_stroke_color(ctx, UI_ACCENT);
+  graphics_draw_rect(ctx, bounds);
+  graphics_draw_rect(ctx, GRect(1, 1, bounds.size.w - 2, bounds.size.h - 2));
+
   graphics_context_set_text_color(ctx, UI_TEXT);
 
   UIState ui_state = {
