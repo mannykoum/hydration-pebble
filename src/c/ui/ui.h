@@ -16,9 +16,9 @@ typedef enum {
 #define UI_BG GColorWhite
 #define UI_TEXT GColorBlack
 #define UI_MUTED GColorDarkGray
-#define UI_ACCENT GColorCyan
-#define UI_ACCENT_ALT GColorBlue
-#define UI_POSITIVE GColorGreen
+#define UI_ACCENT GColorCobaltBlue
+#define UI_ACCENT_ALT GColorPictonBlue
+#define UI_POSITIVE GColorKellyGreen
 #else
 #define UI_BG GColorWhite
 #define UI_TEXT GColorBlack

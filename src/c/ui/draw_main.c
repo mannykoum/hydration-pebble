@@ -14,7 +14,7 @@ void draw_progress_bar(GContext *ctx, GRect frame, int numerator, int denominato
   }
 
   if (fill_width > 0) {
-    graphics_context_set_fill_color(ctx, anim_on ? UI_ACCENT_ALT : UI_ACCENT);
+    graphics_context_set_fill_color(ctx, UI_ACCENT);
     graphics_fill_rect(ctx, GRect(frame.origin.x + 1, frame.origin.y + 1, fill_width - 1, frame.size.h - 1), 4, GCornersAll);
   }
 
@@ -47,19 +47,22 @@ void draw_main_view(GContext *ctx, GRect bounds, UIState *ui_state) {
   if (progress_pct > 100) progress_pct = 100;
   int32_t angle_end = (TRIG_MAX_ANGLE * progress_pct) / 100;
   
-  // Draw ring by drawing multiple stroke circles
-  graphics_context_set_stroke_color(ctx, UI_MUTED);
-  for (int i = 0; i < ring_stroke; i++) {
-    graphics_draw_circle(ctx, ring_center, ring_radius - i / 2);
-  }
-  
-  // Draw filled portion - draw filled arc with rounded corners
+  // Draw unfilled ring background track
+  GRect outer_rect = GRect(ring_center.x - ring_radius, ring_center.y - ring_radius,
+                           ring_radius * 2, ring_radius * 2);
+  graphics_context_set_fill_color(ctx, UI_MUTED);
+  graphics_fill_radial(ctx, outer_rect, GOvalScaleModeFitCircle, ring_stroke, 0, TRIG_MAX_ANGLE);
+
+  // Draw filled portion
   if (progress_pct > 0) {
-    graphics_context_set_fill_color(ctx, ui_state->anim_on ? UI_ACCENT_ALT : UI_ACCENT);
-    GRect outer_rect = GRect(ring_center.x - ring_radius, ring_center.y - ring_radius, 
-                             ring_radius * 2, ring_radius * 2);
+    graphics_context_set_fill_color(ctx, UI_ACCENT);
     graphics_fill_radial(ctx, outer_rect, GOvalScaleModeFitCircle, ring_stroke, 0, angle_end);
   }
+
+  // Draw border/outline around the ring
+  graphics_context_set_stroke_color(ctx, UI_ACCENT);
+  graphics_draw_circle(ctx, ring_center, ring_radius);
+  graphics_draw_circle(ctx, ring_center, ring_radius - ring_stroke);
   
   // Percentage text centered in ring
   char progress_text[16];
