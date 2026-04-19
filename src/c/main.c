@@ -25,6 +25,7 @@ static int s_last_repeat_direction = 0;
 static bool s_anim_on = false;
 static bool s_celebrating = false;
 static int s_celebration_counter = 0;
+static bool s_celebration_played_today = false;
 static time_t s_last_intake_time = 0;
 static int s_last_intake_amount = 0;
 static uint8_t s_last_point_count = 0;
@@ -73,7 +74,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   if (s_celebrating) {
     draw_celebration(ctx, bounds, &ui_state);
     s_celebration_counter++;
-    if (s_celebration_counter > 8) {
+    if (s_celebration_counter > 5) {
       s_celebrating = false;
       s_celebration_counter = 0;
     }
@@ -85,9 +86,10 @@ static void canvas_update(Layer *layer, GContext *ctx) {
     case VIEW_AMOUNT: {
       DayData *today = ensure_today_day(&s_state);
       int goal_met = today->total_ml >= s_state.goal_ml;
-      if (goal_met && !s_celebrating && s_celebration_counter == 0) {
+      if (goal_met && !s_celebrating && !s_celebration_played_today) {
         s_celebrating = true;
         s_celebration_counter = 1;
+        s_celebration_played_today = true;
         vibes_double_pulse();
       }
       draw_amount_view(ctx, bounds, &ui_state); 
@@ -275,6 +277,13 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   static uint8_t tick_count = 0;
   
   reset_if_new_day(&s_state, &s_milestones_hit);
+  
+  // Reset celebration flag on new day
+  DayData *today = ensure_today_day(&s_state);
+  int today_key = day_key_from_time(time(NULL));
+  if (today->date_key == today_key && today->total_ml == 0) {
+    s_celebration_played_today = false;
+  }
   
   tick_count++;
   if (tick_count >= 2) {

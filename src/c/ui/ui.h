@@ -49,6 +49,7 @@ typedef struct {
   bool show_undo_message;
   uint8_t milestones_hit;
   bool anim_on;
+  bool celebration_played_today;
 } UIState;
 
 // Drawing functions
