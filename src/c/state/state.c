@@ -1,5 +1,4 @@
 #include "state.h"
-#include "c/data/stats.h"
 #include <string.h>
 
 void state_save(PersistedState *state) {
@@ -32,16 +31,6 @@ int find_day_index(const PersistedState *state, int key) {
     }
   }
   return -1;
-}
-
-int find_best_day(const PersistedState *state) {
-  int best = 0;
-  for (int i = 0; i < MAX_DAYS; i++) {
-    if (state->days[i].total_ml > best) {
-      best = state->days[i].total_ml;
-    }
-  }
-  return best;
 }
 
 int oldest_day_index(const PersistedState *state) {
