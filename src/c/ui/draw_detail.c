@@ -59,7 +59,7 @@ void draw_detail_view(GContext *ctx, GRect bounds, UIState *ui_state) {
     #else
     graphics_context_set_stroke_color(ctx, UI_TEXT);
     #endif
-    GPoint last = GPoint(plot.origin.x, plot.origin.y + plot.size.h - 1);
+    GPoint last = GPoint(plot.origin.x + 1, plot.origin.y + plot.size.h - 1);
     for (uint8_t i = 0; i < day->point_count; i++) {
       int x = plot.origin.x + (day->minutes[i] * plot.size.w) / (24 * 60);
       int y = plot.origin.y + plot.size.h -
