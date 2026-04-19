@@ -1,0 +1,136 @@
+#include "ui.h"
+#include "../utils/format.h"
+#include <stdio.h>
+#include <string.h>
+
+void draw_progress_bar(GContext *ctx, GRect frame, int numerator, int denominator, const char *label, bool anim_on) {
+  graphics_context_set_stroke_color(ctx, UI_MUTED);
+  graphics_draw_round_rect(ctx, frame, 4);
+
+  int fill_width = 0;
+  if (denominator > 0 && numerator > 0) {
+    int ratio = (int)(((int64_t)numerator * frame.size.w) / denominator);
+    fill_width = ratio > frame.size.w ? frame.size.w : ratio;
+  }
+
+  if (fill_width > 0) {
+    graphics_context_set_fill_color(ctx, anim_on ? UI_ACCENT_ALT : UI_ACCENT);
+    graphics_fill_rect(ctx, GRect(frame.origin.x + 1, frame.origin.y + 1, fill_width - 1, frame.size.h - 1), 4, GCornersAll);
+  }
+
+  graphics_context_set_text_color(ctx, UI_MUTED);
+  graphics_draw_text(ctx, label, FONT_CAPTION,
+    GRect(frame.origin.x, frame.origin.y - 16, frame.size.w, 14),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+  graphics_context_set_text_color(ctx, UI_TEXT);
+}
+
+void draw_main_view(GContext *ctx, GRect bounds, UIState *ui_state) {
+  DayData *today = ensure_today_day(ui_state->state);
+  int total = today->total_ml;
+  int goal = ui_state->state->goal_ml > 0 ? ui_state->state->goal_ml : 2800;
+
+  // Water drop graphic at top center
+  graphics_context_set_fill_color(ctx, UI_ACCENT);
+  int drop_center_x = bounds.size.w / 2;
+  graphics_fill_circle(ctx, GPoint(drop_center_x, 16), 8);
+  graphics_fill_circle(ctx, GPoint(drop_center_x - 1, 13), 4);
+  graphics_fill_circle(ctx, GPoint(drop_center_x + 1, 13), 4);
+
+  // Circular progress ring
+  int ring_radius = 45;
+  int ring_stroke = 8;
+  GPoint ring_center = GPoint(bounds.size.w / 2, 70);
+  
+  // Calculate progress percentage
+  int progress_pct = (total * 100) / (goal > 0 ? goal : 1);
+  if (progress_pct > 100) progress_pct = 100;
+  int32_t angle_end = (TRIG_MAX_ANGLE * progress_pct) / 100;
+  
+  // Draw ring by drawing multiple stroke circles
+  graphics_context_set_stroke_color(ctx, UI_MUTED);
+  for (int i = 0; i < ring_stroke; i++) {
+    graphics_draw_circle(ctx, ring_center, ring_radius - i / 2);
+  }
+  
+  // Draw filled portion - draw filled arc with rounded corners
+  if (progress_pct > 0) {
+    graphics_context_set_fill_color(ctx, ui_state->anim_on ? UI_ACCENT_ALT : UI_ACCENT);
+    GRect outer_rect = GRect(ring_center.x - ring_radius, ring_center.y - ring_radius, 
+                             ring_radius * 2, ring_radius * 2);
+    graphics_fill_radial(ctx, outer_rect, GOvalScaleModeFitCircle, ring_stroke, 0, angle_end);
+  }
+  
+  // Percentage text centered in ring
+  char progress_text[16];
+  snprintf(progress_text, sizeof(progress_text), "%d%%", progress_pct);
+  graphics_context_set_text_color(ctx, UI_TEXT);
+  graphics_draw_text(ctx, progress_text, FONT_DISPLAY,
+    GRect(ring_center.x - 40, ring_center.y - 18, 80, 36),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+  // Amount text below ring
+  char amount_text[32];
+  format_amount(ui_state->state, total, amount_text, sizeof(amount_text));
+  graphics_draw_text(ctx, amount_text, FONT_TITLE,
+    GRect(0, ring_center.y + ring_radius + 4, bounds.size.w, 28),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+  // Day progress percentage
+  time_t now = time(NULL);
+  struct tm *tm_now = localtime(&now);
+  int minutes = tm_now->tm_hour * 60 + tm_now->tm_min;
+  int day_progress = (minutes * 100) / (24 * 60);
+  char day_text[32];
+  snprintf(day_text, sizeof(day_text), "Day: %d%%", day_progress);
+  graphics_draw_text(ctx, day_text, FONT_BODY,
+    GRect(0, 128, bounds.size.w, 22),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+
+  // Streak badge (top right corner)
+  if (ui_state->state->current_streak > 0) {
+    int badge_x = bounds.size.w - 36;
+    int badge_y = 8;
+    
+    // Draw flame icon using graphics primitives
+    graphics_context_set_fill_color(ctx, UI_POSITIVE);
+    
+    // Flame base (triangle)
+    GPoint flame_points[3];
+    flame_points[0] = GPoint(badge_x + 8, badge_y + 18);
+    flame_points[1] = GPoint(badge_x + 16, badge_y + 18);
+    flame_points[2] = GPoint(badge_x + 12, badge_y + 4);
+    GPathInfo flame_path_info = {
+      .num_points = 3,
+      .points = flame_points
+    };
+    GPath *flame_path = gpath_create(&flame_path_info);
+    gpath_draw_filled(ctx, flame_path);
+    gpath_destroy(flame_path);
+    
+    // Flame tip circles
+    graphics_fill_circle(ctx, GPoint(badge_x + 12, badge_y + 6), 3);
+    graphics_fill_circle(ctx, GPoint(badge_x + 10, badge_y + 10), 2);
+    graphics_fill_circle(ctx, GPoint(badge_x + 14, badge_y + 10), 2);
+    
+    // Streak number
+    char streak_text[8];
+    snprintf(streak_text, sizeof(streak_text), "%d", ui_state->state->current_streak);
+    graphics_context_set_text_color(ctx, UI_POSITIVE);
+    graphics_draw_text(ctx, streak_text, FONT_CAPTION,
+      GRect(badge_x - 4, badge_y + 16, 32, 16),
+      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    graphics_context_set_text_color(ctx, UI_TEXT);
+  }
+
+  // Instructions at bottom
+  graphics_context_set_text_color(ctx, UI_MUTED);
+  graphics_draw_text(ctx,
+    ui_state->edit_goal ? "Goal edit: use UP/DOWN" : "Hold SELECT to edit goal",
+    FONT_CAPTION,
+    GRect(8, bounds.size.h - 38, bounds.size.w - 16, 32),
+    GTextOverflowModeWordWrap,
+    GTextAlignmentCenter,
+    NULL);
+  graphics_context_set_text_color(ctx, UI_TEXT);
+}
