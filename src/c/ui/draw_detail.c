@@ -12,16 +12,19 @@ void draw_detail_view(GContext *ctx, GRect bounds, UIState *ui_state) {
              ui_state->selected_day_offset == 1 ? "" : "s");
   }
   graphics_draw_text(ctx, heading, FONT_CAPTION,
-    GRect(8, 0, bounds.size.w - 16, 16), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    GRect(8, 2, bounds.size.w - 16, 16),
+    GTextOverflowModeTrailingEllipsis,
+    GTextAlignmentCenter,
+    NULL);
 
   if (!day) {
     graphics_draw_text(ctx, "No data", FONT_BODY,
       GRect(0, bounds.size.h / 2 - 9, bounds.size.w, 18),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
     graphics_draw_text(ctx,
-      ui_state->selecting_day ? "Up/down choose day" : "Select to choose day",
+      ui_state->selecting_day ? "Up/down choose day" : "SELECT to choose day",
       FONT_CAPTION,
-      GRect(0, bounds.size.h - 16, bounds.size.w, 16),
+      GRect(8, bounds.size.h - 20, bounds.size.w - 16, 14),
       GTextOverflowModeTrailingEllipsis,
       GTextAlignmentCenter,
       NULL);
@@ -76,9 +79,9 @@ void draw_detail_view(GContext *ctx, GRect bounds, UIState *ui_state) {
   }
 
   graphics_draw_text(ctx,
-    ui_state->selecting_day ? "Up/down choose day" : "Select to choose day",
+    ui_state->selecting_day ? "Up/down choose day" : "SELECT to choose day",
     FONT_CAPTION,
-    GRect(0, bounds.size.h - 16, bounds.size.w, 16),
+    GRect(8, bounds.size.h - 20, bounds.size.w - 16, 14),
     GTextOverflowModeTrailingEllipsis,
     GTextAlignmentCenter,
     NULL);

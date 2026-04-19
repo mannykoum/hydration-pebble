@@ -119,7 +119,7 @@ void draw_main_view(GContext *ctx, GRect bounds, UIState *ui_state) {
   graphics_draw_text(ctx,
     ui_state->edit_goal ? "Goal edit: use UP/DOWN" : "Hold SELECT to edit goal",
     FONT_CAPTION,
-    GRect(8, bounds.size.h - 16, bounds.size.w - 16, 14),
+    GRect(8, bounds.size.h - 20, bounds.size.w - 16, 14),
     GTextOverflowModeTrailingEllipsis,
     GTextAlignmentCenter,
     NULL);
