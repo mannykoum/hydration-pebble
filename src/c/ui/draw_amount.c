@@ -6,41 +6,31 @@ void draw_amount_view(GContext *ctx, GRect bounds, UIState *ui_state) {
   DayData *today = ensure_today_day(ui_state->state);
   int goal_met = today->total_ml >= ui_state->state->goal_ml;
 
-  // Blocky cup icon with shake animation
-  int cup_x = 6;
-  int cup_y = 14;
-  int cup_width = 24;
-  int cup_height = 40;
-  
-  // Shake animation when amount is selected
-  if (ui_state->anim_on && ui_state->view == VIEW_AMOUNT) {
-    for (int i = 0; i < MAX_AMOUNTS; i++) {
-      if (i == ui_state->selected_amount) {
-        cup_y = 14 + i * 24;
-        cup_x += (i % 2 == 0) ? 3 : -3;
-        break;
-      }
-    }
-  }
-  
-  // Cup rim (top edge)
+  // Symmetric cup icon (fixed position, no animation)
+  int cup_x = 4;
+  int cup_y = 20;
+  int cw = 22;
+  int ch = 32;
+
   graphics_context_set_stroke_color(ctx, UI_TEXT);
-  graphics_draw_line(ctx, GPoint(cup_x, cup_y), GPoint(cup_x + cup_width, cup_y));
-  graphics_draw_line(ctx, GPoint(cup_x, cup_y + 1), GPoint(cup_x + cup_width, cup_y + 1));
-  
-  // Cup body (tapered sides)
-  graphics_draw_round_rect(ctx, GRect(cup_x + 2, cup_y + 2, cup_width - 4, cup_height - 8), 4);
-  graphics_draw_line(ctx, GPoint(cup_x, cup_y), GPoint(cup_x + 2, cup_y + cup_height - 6));
-  graphics_draw_line(ctx, GPoint(cup_x + cup_width, cup_y), GPoint(cup_x + cup_width - 2, cup_y + cup_height - 6));
-  
-  // Cup base
-  graphics_draw_line(ctx, GPoint(cup_x + 2, cup_y + cup_height - 6), GPoint(cup_x + cup_width - 2, cup_y + cup_height - 6));
-  graphics_draw_line(ctx, GPoint(cup_x + 2, cup_y + cup_height - 5), GPoint(cup_x + cup_width - 2, cup_y + cup_height - 5));
-  
-  // Water level indicator (fills 60% of cup)
-  int water_height = (cup_height - 10) * 6 / 10;
-  graphics_context_set_fill_color(ctx, UI_ACCENT);
-  graphics_fill_rect(ctx, GRect(cup_x + 4, cup_y + cup_height - 8 - water_height, cup_width - 8, water_height), 4, GCornersAll);
+  // Cup body
+  graphics_draw_rect(ctx, GRect(cup_x, cup_y, cw, ch));
+  // Rim - slightly wider
+  graphics_draw_line(ctx, GPoint(cup_x - 1, cup_y), GPoint(cup_x + cw, cup_y));
+  // Base - slightly wider
+  graphics_draw_line(ctx, GPoint(cup_x - 1, cup_y + ch), GPoint(cup_x + cw, cup_y + ch));
+  // Handle on right
+  graphics_draw_rect(ctx, GRect(cup_x + cw, cup_y + 8, 6, 14));
+
+  // Water fill based on progress
+  int goal = ui_state->state->goal_ml > 0 ? ui_state->state->goal_ml : 2800;
+  int fill_pct = (today->total_ml * 100) / goal;
+  if (fill_pct > 100) fill_pct = 100;
+  int water_h = (ch - 2) * fill_pct / 100;
+  if (water_h > 0) {
+    graphics_context_set_fill_color(ctx, UI_ACCENT);
+    graphics_fill_rect(ctx, GRect(cup_x + 1, cup_y + ch - 1 - water_h, cw - 2, water_h), 0, GCornerNone);
+  }
 
   for (int i = 0; i < MAX_AMOUNTS; i++) {
     char line[20];
