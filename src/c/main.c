@@ -294,7 +294,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   }
   
   tick_count++;
-  if (tick_count >= 2) {
+  if (tick_count >= 1) {
     tick_count = 0;
     s_anim_on = !s_anim_on;
     layer_mark_dirty(s_canvas_layer);

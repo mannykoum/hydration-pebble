@@ -48,6 +48,6 @@ void draw_weekly_view(GContext *ctx, GRect bounds, UIState *ui_state) {
 
   graphics_context_set_text_color(ctx, UI_TEXT);
   graphics_draw_text(ctx, "Last 7 days", FONT_BODY,
-                     GRect(0, 2, bounds.size.w, 20), GTextOverflowModeTrailingEllipsis,
+                     GRect(0, 18, bounds.size.w, 20), GTextOverflowModeTrailingEllipsis,
                      GTextAlignmentCenter, NULL);
 }

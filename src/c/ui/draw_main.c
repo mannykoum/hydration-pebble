@@ -59,7 +59,7 @@ void draw_main_view(GContext *ctx, GRect bounds, UIState *ui_state) {
 
   // Draw unfilled ring background track
   GRect outer_rect = GRect(ring_center.x - ring_radius, ring_center.y - ring_radius,
-                           ring_radius * 2, ring_radius * 2);
+                           ring_radius * 2, ring_radius * 2 );
   graphics_context_set_fill_color(ctx, UI_MUTED);
   graphics_fill_radial(ctx, outer_rect, GOvalScaleModeFitCircle, ring_stroke, 0, TRIG_MAX_ANGLE);
 
