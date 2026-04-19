@@ -16,7 +16,7 @@ int calculate_weekly_avg(PersistedState *state) {
 int find_best_day(const PersistedState *state) {
   int best = 0;
   for (int i = 0; i < MAX_DAYS; i++) {
-    if (state->days[i].total_ml > best) {
+    if (state->days[i].date_key != 0 && state->days[i].total_ml > best) {
       best = state->days[i].total_ml;
     }
   }
