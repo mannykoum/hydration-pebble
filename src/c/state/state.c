@@ -5,9 +5,50 @@ void state_save(PersistedState *state) {
   persist_write_data(STORAGE_KEY_STATE, state, sizeof(PersistedState));
 }
 
+// Valid date_key range: 20150101 to 20351231 (Pebble era)
+#define DATE_KEY_MIN 20150101
+#define DATE_KEY_MAX 20351231
+// No human drinks more than 20 liters in a day
+#define MAX_DAILY_ML 20000
+
+static void sanitize_state(PersistedState *state) {
+  // Validate goal
+  if (state->goal_ml <= 0 || state->goal_ml > MAX_DAILY_ML) {
+    state->goal_ml = 2800;
+  }
+
+  // Validate amounts
+  for (int i = 0; i < MAX_AMOUNTS; i++) {
+    if (state->amounts_ml[i] <= 0 || state->amounts_ml[i] > MAX_DAILY_ML) {
+      int defaults[] = {250, 500, 750, 1000};
+      state->amounts_ml[i] = defaults[i];
+    }
+  }
+
+  if (state->unit > UNIT_PINTS) {
+    state->unit = UNIT_ML;
+  }
+
+  if (state->current_streak < 0) {
+    state->current_streak = 0;
+  }
+
+  // Validate each day entry
+  for (int i = 0; i < MAX_DAYS; i++) {
+    DayData *d = &state->days[i];
+    bool valid = d->date_key >= DATE_KEY_MIN && d->date_key <= DATE_KEY_MAX
+              && d->total_ml >= 0 && d->total_ml <= MAX_DAILY_ML
+              && d->point_count <= MAX_POINTS;
+    if (!valid) {
+      memset(d, 0, sizeof(DayData));
+    }
+  }
+}
+
 void state_load(PersistedState *state) {
   if (persist_exists(STORAGE_KEY_STATE)) {
     persist_read_data(STORAGE_KEY_STATE, state, sizeof(PersistedState));
+    sanitize_state(state);
   } else {
     memset(state, 0, sizeof(PersistedState));
     state->goal_ml = 2800;
