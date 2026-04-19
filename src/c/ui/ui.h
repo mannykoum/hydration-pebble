@@ -15,7 +15,7 @@ typedef enum {
 #ifdef PBL_COLOR
 #define UI_BG GColorWhite
 #define UI_TEXT GColorBlack
-#define UI_MUTED GColorDarkGray
+#define UI_MUTED GColorTiffanyBlue
 #define UI_ACCENT GColorCobaltBlue
 #define UI_ACCENT_ALT GColorPictonBlue
 #define UI_POSITIVE GColorKellyGreen

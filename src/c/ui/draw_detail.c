@@ -18,6 +18,7 @@ void draw_detail_view(GContext *ctx, GRect bounds, UIState *ui_state) {
     NULL);
 
   if (!day) {
+    graphics_context_set_text_color(ctx, UI_MUTED);
     graphics_draw_text(ctx, "No data", FONT_BODY,
       GRect(0, bounds.size.h / 2 - 9, bounds.size.w, 18),
       GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
@@ -51,7 +52,7 @@ void draw_detail_view(GContext *ctx, GRect bounds, UIState *ui_state) {
     char label[12];
     int mark = max_value - (max_value * i / 4);
     snprintf(label, sizeof(label), "%d", mark);
-    graphics_context_set_text_color(ctx, UI_MUTED);
+    graphics_context_set_text_color(ctx, UI_TEXT);
     graphics_draw_text(ctx, label, FONT_CAPTION,
       GRect(plot.origin.x + 2, y - 10, 30, 14), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
@@ -60,7 +61,7 @@ void draw_detail_view(GContext *ctx, GRect bounds, UIState *ui_state) {
     #ifdef PBL_COLOR
     graphics_context_set_stroke_color(ctx, GColorCobaltBlue);
     #else
-    graphics_context_set_stroke_color(ctx, UI_TEXT);
+    graphics_context_set_stroke_color(ctx, UI_MUTED);
     #endif
     GPoint last = GPoint(plot.origin.x + 1, plot.origin.y + plot.size.h - 1);
     for (uint8_t i = 0; i < day->point_count; i++) {
@@ -78,6 +79,7 @@ void draw_detail_view(GContext *ctx, GRect bounds, UIState *ui_state) {
     }
   }
 
+  graphics_context_set_text_color(ctx, UI_MUTED);
   graphics_draw_text(ctx,
     ui_state->selecting_day ? "Up/down choose day" : "SELECT to choose day",
     FONT_CAPTION,

@@ -69,7 +69,7 @@ void draw_amount_view(GContext *ctx, GRect bounds, UIState *ui_state) {
         ui_state->edit_amount ? "UP/DOWN: edit amount"
                               : "SELECT: add/remove\nHold: edit amount",
         FONT_CAPTION,
-        GRect(8, bounds.size.h - 20, bounds.size.w - 16, 14),
+        GRect(8, bounds.size.h - 34, bounds.size.w - 16, 14),
         GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
   }
 }
