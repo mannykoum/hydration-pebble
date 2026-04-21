@@ -152,43 +152,57 @@ static void hide_undo_message(void *data) {
 }
 
 static void back_handler(ClickRecognizerRef recognizer, void *context) {
+  // Exit edit modes first
   if (s_edit_goal || s_edit_amount || s_selecting_day) {
     s_edit_goal = false;
     s_edit_amount = false;
     s_selecting_day = false;
     state_save(&s_state);
     layer_mark_dirty(s_canvas_layer);
-  } else {
-    // Check for undo functionality (within 10 seconds)
-    time_t now = time(NULL);
-    if (s_last_intake_amount != 0 && (now - s_last_intake_time) <= 10) {
-      // Undo the last intake
-      DayData *today = ensure_today_day(&s_state);
-      today->total_ml -= s_last_intake_amount;
-      if (today->total_ml < 0) {
-        today->total_ml = 0;
-      }
-      
-      // Restore point_count to state before last intake
-      today->point_count = s_last_point_count;
-      
-      state_save(&s_state);
-      
-      // Clear undo data (only works once)
-      s_last_intake_amount = 0;
-      s_last_intake_time = 0;
-      s_last_point_count = 0;
-      
-      // Show "Undone!" message
-      s_show_undo_message = true;
-      if (s_undo_message_timer) {
-        app_timer_cancel(s_undo_message_timer);
-      }
-      s_undo_message_timer = app_timer_register(2000, hide_undo_message, NULL);
-      
-      vibes_short_pulse();
-      layer_mark_dirty(s_canvas_layer);
-    }
+    return;
+  }
+  
+  // Navigate back through view hierarchy
+  switch (s_view) {
+    case VIEW_AMOUNT:
+      move_view(VIEW_MAIN);
+      break;
+    case VIEW_DETAIL:
+      move_view(VIEW_MAIN);
+      break;
+    case VIEW_WEEKLY:
+      move_view(VIEW_DETAIL);
+      break;
+    case VIEW_STATS:
+      move_view(VIEW_WEEKLY);
+      break;
+    case VIEW_MAIN:
+      // Let system handle — exit app
+      window_stack_pop(true);
+      break;
+    default:
+      window_stack_pop(true);
+      break;
+  }
+}
+
+static void back_long_handler(ClickRecognizerRef recognizer, void *context) {
+  // Undo last intake (within 10 seconds)
+  time_t now = time(NULL);
+  if (s_last_intake_amount != 0 && (now - s_last_intake_time) <= 10) {
+    DayData *today = ensure_today_day(&s_state);
+    today->total_ml -= s_last_intake_amount;
+    if (today->total_ml < 0) today->total_ml = 0;
+    today->point_count = s_last_point_count;
+    state_save(&s_state);
+    s_last_intake_amount = 0;
+    s_last_intake_time = 0;
+    s_last_point_count = 0;
+    s_show_undo_message = true;
+    if (s_undo_message_timer) app_timer_cancel(s_undo_message_timer);
+    s_undo_message_timer = app_timer_register(2000, hide_undo_message, NULL);
+    vibes_short_pulse();
+    layer_mark_dirty(s_canvas_layer);
   }
 }
 
@@ -278,6 +292,7 @@ static void click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_SELECT, select_single_handler);
   window_long_click_subscribe(BUTTON_ID_SELECT, 500, select_long_handler, NULL);
   window_single_click_subscribe(BUTTON_ID_BACK, back_handler);
+  window_long_click_subscribe(BUTTON_ID_BACK, 700, back_long_handler, NULL);
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
