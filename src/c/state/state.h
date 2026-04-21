@@ -1,10 +1,14 @@
 #pragma once
 #include <pebble.h>
 
-#define STORAGE_KEY_STATE 1
+#define STORAGE_VERSION 1
+#define STORAGE_KEY_VERSION 0
+#define STORAGE_KEY_SETTINGS 1
+#define STORAGE_KEY_DAY_BASE 2
+
 #define MAX_AMOUNTS 6
 #define MAX_DAYS 14
-#define MAX_POINTS 32
+#define MAX_POINTS 16
 
 typedef enum {
   UNIT_ML = 0,
