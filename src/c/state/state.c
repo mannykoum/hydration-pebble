@@ -9,12 +9,9 @@ typedef struct {
 } SettingsBlock;
 
 void state_save(PersistedState *state) {
-  uint8_t version = STORAGE_VERSION;
-  int ret = persist_write_data(STORAGE_KEY_VERSION, &version, sizeof(version));
-  if (ret < 0) {
-    APP_LOG(APP_LOG_LEVEL_ERROR, "persist version failed: %d", ret);
-  }
+  int ret;
   
+  // Write settings first
   SettingsBlock settings = {
     .goal_ml = state->goal_ml,
     .unit = state->unit,
@@ -26,11 +23,19 @@ void state_save(PersistedState *state) {
     APP_LOG(APP_LOG_LEVEL_ERROR, "persist settings failed: %d", ret);
   }
   
+  // Write all days
   for (int i = 0; i < MAX_DAYS; i++) {
     ret = persist_write_data(STORAGE_KEY_DAY_BASE + i, &state->days[i], sizeof(DayData));
     if (ret < 0) {
       APP_LOG(APP_LOG_LEVEL_ERROR, "persist day %d failed: %d", i, ret);
     }
+  }
+  
+  // Write version key LAST as commit marker
+  uint8_t version = STORAGE_VERSION;
+  ret = persist_write_data(STORAGE_KEY_VERSION, &version, sizeof(version));
+  if (ret < 0) {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "persist version failed: %d", ret);
   }
 }
 
@@ -95,15 +100,25 @@ void state_load(PersistedState *state) {
       return;
     }
     
-    SettingsBlock settings;
-    persist_read_data(STORAGE_KEY_SETTINGS, &settings, sizeof(SettingsBlock));
-    state->goal_ml = settings.goal_ml;
-    state->unit = settings.unit;
-    state->current_streak = settings.current_streak;
-    memcpy(state->amounts_ml, settings.amounts_ml, sizeof(state->amounts_ml));
+    // Initialize settings to zero and check read return value
+    SettingsBlock settings = {0};
+    int ret = persist_read_data(STORAGE_KEY_SETTINGS, &settings, sizeof(SettingsBlock));
+    if (ret > 0) {
+      state->goal_ml = settings.goal_ml;
+      state->unit = settings.unit;
+      state->current_streak = settings.current_streak;
+      memcpy(state->amounts_ml, settings.amounts_ml, sizeof(state->amounts_ml));
+    }
+    // else: keep zeros, sanitize_state will set defaults
     
+    // Check persist_exists before reading days, handle failures
     for (int i = 0; i < MAX_DAYS; i++) {
-      persist_read_data(STORAGE_KEY_DAY_BASE + i, &state->days[i], sizeof(DayData));
+      if (persist_exists(STORAGE_KEY_DAY_BASE + i)) {
+        ret = persist_read_data(STORAGE_KEY_DAY_BASE + i, &state->days[i], sizeof(DayData));
+        if (ret < 0) {
+          memset(&state->days[i], 0, sizeof(DayData));
+        }
+      }
     }
     
     sanitize_state(state);
