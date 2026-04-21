@@ -2,7 +2,7 @@
   var DEFAULTS = {
     goalMl: 2800,
     unit: 'ml',
-    amounts: [250, 500, -250, 1000]
+    amounts: [250, 500, 750, 1000, 237, -237]
   };
   var LOG_STORAGE_KEY = 'hydration_intake_log';
   var MAX_LOG_ENTRIES = 500;
@@ -16,10 +16,19 @@
   function loadSettings() {
     try {
       var parsed = JSON.parse(localStorage.getItem('hydration_settings') || '{}');
+      var amounts = DEFAULTS.amounts;
+      if (Array.isArray(parsed.amounts)) {
+        if (parsed.amounts.length === 6) {
+          amounts = parsed.amounts;
+        } else if (parsed.amounts.length === 4) {
+          // Migrate: append new defaults
+          amounts = parsed.amounts.concat([237, -237]);
+        }
+      }
       return {
         goalMl: Number(parsed.goalMl) || DEFAULTS.goalMl,
         unit: UNIT_TO_ML[parsed.unit] ? parsed.unit : DEFAULTS.unit,
-        amounts: Array.isArray(parsed.amounts) && parsed.amounts.length === 4 ? parsed.amounts : DEFAULTS.amounts
+        amounts: amounts
       };
     } catch (e) {
       return DEFAULTS;
@@ -69,14 +78,16 @@
       '</head><body><h3>Hydration Settings</h3>' +
       '<label>Goal (' + settings.unit + ')<input id="goal" type="number" step="0.1" value="' + (settings.goalMl / UNIT_TO_ML[settings.unit]).toFixed(1).replace(/\.0$/, '') + '"></label>' +
       '<label>Unit<select id="unit"><option value="ml">ml</option><option value="cups">cups</option><option value="pints">pints</option></select></label>' +
-      '<small>Set 4 signed amounts (+ adds, - removes)</small>' +
+      '<small>Set 6 signed amounts (+ adds, - removes)</small>' +
       '<label>Amount 1<input id="a0" type="number" step="0.1" value="' + (settings.amounts[0] / UNIT_TO_ML[settings.unit]).toFixed(1).replace(/\.0$/, '') + '"></label>' +
       '<label>Amount 2<input id="a1" type="number" step="0.1" value="' + (settings.amounts[1] / UNIT_TO_ML[settings.unit]).toFixed(1).replace(/\.0$/, '') + '"></label>' +
       '<label>Amount 3<input id="a2" type="number" step="0.1" value="' + (settings.amounts[2] / UNIT_TO_ML[settings.unit]).toFixed(1).replace(/\.0$/, '') + '"></label>' +
       '<label>Amount 4<input id="a3" type="number" step="0.1" value="' + (settings.amounts[3] / UNIT_TO_ML[settings.unit]).toFixed(1).replace(/\.0$/, '') + '"></label>' +
+      '<label>Amount 5<input id="a4" type="number" step="0.1" value="' + (settings.amounts[4] / UNIT_TO_ML[settings.unit]).toFixed(1).replace(/\.0$/, '') + '"></label>' +
+      '<label>Amount 6<input id="a5" type="number" step="0.1" value="' + (settings.amounts[5] / UNIT_TO_ML[settings.unit]).toFixed(1).replace(/\.0$/, '') + '"></label>' +
       '<button onclick="save()">Save</button><button onclick="location.href=\'pebblejs://close#\'">Cancel</button>' +
       '<script>var unitSel=document.getElementById(\'unit\');unitSel.value=\'' + settings.unit + '\';' +
-      'function save(){var u=unitSel.value;var payload={goal:document.getElementById(\'goal\').value,unit:u,a0:document.getElementById(\'a0\').value,a1:document.getElementById(\'a1\').value,a2:document.getElementById(\'a2\').value,a3:document.getElementById(\'a3\').value};location.href=\'pebblejs://close#\'+encodeURIComponent(JSON.stringify(payload));}</script>' +
+      'function save(){var u=unitSel.value;var payload={goal:document.getElementById(\'goal\').value,unit:u,a0:document.getElementById(\'a0\').value,a1:document.getElementById(\'a1\').value,a2:document.getElementById(\'a2\').value,a3:document.getElementById(\'a3\').value,a4:document.getElementById(\'a4\').value,a5:document.getElementById(\'a5\').value};location.href=\'pebblejs://close#\'+encodeURIComponent(JSON.stringify(payload));}</script>' +
       '</body></html>';
 
     return 'data:text/html;charset=utf-8,' + encodeURIComponent(html);
@@ -106,7 +117,9 @@
         convertToMl(payload.a0, unit),
         convertToMl(payload.a1, unit),
         convertToMl(payload.a2, unit),
-        convertToMl(payload.a3, unit)
+        convertToMl(payload.a3, unit),
+        convertToMl(payload.a4, unit),
+        convertToMl(payload.a5, unit)
       ]
     };
 
@@ -118,7 +131,9 @@
       KEY_AMOUNT_0: next.amounts[0],
       KEY_AMOUNT_1: next.amounts[1],
       KEY_AMOUNT_2: next.amounts[2],
-      KEY_AMOUNT_3: next.amounts[3]
+      KEY_AMOUNT_3: next.amounts[3],
+      KEY_AMOUNT_4: next.amounts[4],
+      KEY_AMOUNT_5: next.amounts[5]
     });
   });
 
