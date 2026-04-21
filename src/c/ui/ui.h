@@ -60,6 +60,3 @@ void draw_detail_view(GContext *ctx, GRect bounds, UIState *ui_state);
 void draw_weekly_view(GContext *ctx, GRect bounds, UIState *ui_state);
 void draw_stats_view(GContext *ctx, GRect bounds, UIState *ui_state);
 void draw_celebration(GContext *ctx, GRect bounds, UIState *ui_state);
-
-// Utility drawing functions
-void draw_progress_bar(GContext *ctx, GRect frame, int numerator, int denominator, const char *label, bool anim_on);

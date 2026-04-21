@@ -3,28 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 
-void draw_progress_bar(GContext *ctx, GRect frame, int numerator, int denominator, const char *label, bool anim_on) {
-  graphics_context_set_stroke_color(ctx, UI_MUTED);
-  graphics_draw_round_rect(ctx, frame, 4);
-
-  int fill_width = 0;
-  if (denominator > 0 && numerator > 0) {
-    int ratio = (int)(((int64_t)numerator * frame.size.w) / denominator);
-    fill_width = ratio > frame.size.w ? frame.size.w : ratio;
-  }
-
-  if (fill_width > 0) {
-    graphics_context_set_fill_color(ctx, UI_ACCENT);
-    graphics_fill_rect(ctx, GRect(frame.origin.x + 1, frame.origin.y + 1, fill_width - 1, frame.size.h - 1), 4, GCornersAll);
-  }
-
-  graphics_context_set_text_color(ctx, UI_MUTED);
-  graphics_draw_text(ctx, label, FONT_CAPTION,
-    GRect(frame.origin.x, frame.origin.y - 16, frame.size.w, 14),
-    GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-  graphics_context_set_text_color(ctx, UI_TEXT);
-}
-
 void draw_main_view(GContext *ctx, GRect bounds, UIState *ui_state) {
   DayData *today = ui_state->today;
   int total = today->total_ml;

@@ -35,15 +35,21 @@ void add_intake(PersistedState *state, int delta_ml, uint8_t *milestones_hit,
   int minute = current_minutes();
   if (today->point_count == 0) {
     today->minutes[0] = (uint16_t)minute;
-    today->cumulative_ml[0] = (uint16_t)today->total_ml;
+    // Cap cumulative_ml to uint16_t max to prevent overflow
+    uint16_t capped_ml = (today->total_ml > 65535) ? 65535 : (uint16_t)today->total_ml;
+    today->cumulative_ml[0] = capped_ml;
     today->point_count = 1;
   } else if (today->point_count < MAX_POINTS) {
     today->minutes[today->point_count] = (uint16_t)minute;
-    today->cumulative_ml[today->point_count] = (uint16_t)today->total_ml;
+    // Cap cumulative_ml to uint16_t max to prevent overflow
+    uint16_t capped_ml = (today->total_ml > 65535) ? 65535 : (uint16_t)today->total_ml;
+    today->cumulative_ml[today->point_count] = capped_ml;
     today->point_count++;
   } else {
     today->minutes[MAX_POINTS - 1] = (uint16_t)minute;
-    today->cumulative_ml[MAX_POINTS - 1] = (uint16_t)today->total_ml;
+    // Cap cumulative_ml to uint16_t max to prevent overflow
+    uint16_t capped_ml = (today->total_ml > 65535) ? 65535 : (uint16_t)today->total_ml;
+    today->cumulative_ml[MAX_POINTS - 1] = capped_ml;
   }
 
   state_save(state);
