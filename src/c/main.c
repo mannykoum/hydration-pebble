@@ -32,6 +32,7 @@ static uint8_t s_last_point_count = 0;
 static uint8_t s_milestones_hit = 0;
 static bool s_show_undo_message = false;
 static AppTimer *s_undo_message_timer = NULL;
+static AppTimer *s_anim_timer = NULL;
 
 static int progress_step(void) {
   int streak_factor = s_repeat_streak / REPEAT_STREAK_DIVISOR;
@@ -39,6 +40,24 @@ static int progress_step(void) {
     streak_factor = 10;
   }
   return REPEAT_STEP_BASE + (streak_factor * REPEAT_STEP_INCREMENT);
+}
+
+static void anim_timer_callback(void *data) {
+  s_anim_on = !s_anim_on;
+  layer_mark_dirty(s_canvas_layer);
+  
+  // Continue animating if celebration is active
+  if (s_celebrating) {
+    s_anim_timer = app_timer_register(200, anim_timer_callback, NULL);
+  } else {
+    s_anim_timer = NULL;
+  }
+}
+
+static void start_animation(void) {
+  if (!s_anim_timer) {
+    s_anim_timer = app_timer_register(200, anim_timer_callback, NULL);
+  }
 }
 
 static void move_view(MainView new_view) {
@@ -98,6 +117,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
         s_celebration_counter = 1;
         s_celebration_played_today = true;
         vibes_double_pulse();
+        start_animation();
       }
       draw_amount_view(ctx, bounds, &ui_state); 
       break;
@@ -281,8 +301,6 @@ static void click_config_provider(void *context) {
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  static uint8_t tick_count = 0;
-  
   reset_if_new_day(&s_state, &s_milestones_hit);
   
   // Reset celebration flag on new day by tracking last reset date
@@ -293,12 +311,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
     s_last_celebration_reset_key = current_day_key;
   }
   
-  tick_count++;
-  if (tick_count >= 1) {
-    tick_count = 0;
-    s_anim_on = !s_anim_on;
-    layer_mark_dirty(s_canvas_layer);
-  }
+  layer_mark_dirty(s_canvas_layer);
 }
 
 static void inbox_received_callback(DictionaryIterator *iter, void *context) {
@@ -357,10 +370,13 @@ static void init(void) {
   app_message_register_inbox_dropped(inbox_dropped_callback);
   app_message_open(256, 64);
 
-  tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
+  tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
 }
 
 static void deinit(void) {
+  if (s_anim_timer) {
+    app_timer_cancel(s_anim_timer);
+  }
   tick_timer_service_unsubscribe();
   window_destroy(s_main_window);
 }
