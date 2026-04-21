@@ -10,8 +10,8 @@ void draw_stats_view(GContext *ctx, GRect bounds, UIState *ui_state) {
   int streak = ui_state->state->current_streak;
 
   // If today's goal is met, display streak includes today
-  DayData *today = day_by_offset(ui_state->state, 0);
-  if (today && today->total_ml >= ui_state->state->goal_ml) {
+  DayData *today = ui_state->today;
+  if (today->total_ml >= ui_state->state->goal_ml) {
     streak = ui_state->state->current_streak + 1;
   }
 

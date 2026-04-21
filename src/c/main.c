@@ -62,8 +62,11 @@ static void canvas_update(Layer *layer, GContext *ctx) {
 
   graphics_context_set_text_color(ctx, UI_TEXT);
 
+  DayData *today = ensure_today_day(&s_state);
+
   UIState ui_state = {
     .state = &s_state,
+    .today = today,
     .view = s_view,
     .edit_goal = s_edit_goal,
     .edit_amount = s_edit_amount,
@@ -91,8 +94,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   switch (s_view) {
     case VIEW_MAIN: draw_main_view(ctx, bounds, &ui_state); break;
     case VIEW_AMOUNT: {
-      DayData *today = ensure_today_day(&s_state);
-      int goal_met = today->total_ml >= s_state.goal_ml;
+      int goal_met = ui_state.today->total_ml >= s_state.goal_ml;
       if (goal_met && !s_celebrating && !s_celebration_played_today) {
         s_celebrating = true;
         s_celebration_counter = 1;

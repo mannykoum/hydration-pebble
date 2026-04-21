@@ -26,7 +26,7 @@ void draw_progress_bar(GContext *ctx, GRect frame, int numerator, int denominato
 }
 
 void draw_main_view(GContext *ctx, GRect bounds, UIState *ui_state) {
-  DayData *today = ensure_today_day(ui_state->state);
+  DayData *today = ui_state->today;
   int total = today->total_ml;
   int goal = ui_state->state->goal_ml > 0 ? ui_state->state->goal_ml : 2800;
 
