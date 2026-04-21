@@ -38,6 +38,7 @@ typedef enum {
 // UI state structure (passed to drawing functions)
 typedef struct {
   PersistedState *state;
+  DayData *today;        // Pre-resolved today pointer (avoid state mutation in render)
   MainView view;
   bool edit_goal;
   bool edit_amount;

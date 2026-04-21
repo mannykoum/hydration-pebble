@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 void draw_amount_view(GContext *ctx, GRect bounds, UIState *ui_state) {
-  DayData *today = ensure_today_day(ui_state->state);
+  DayData *today = ui_state->today;
   int goal_met = today->total_ml >= ui_state->state->goal_ml;
 
   // Symmetric cup icon (fixed position, no animation)
