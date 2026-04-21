@@ -10,7 +10,12 @@ void draw_weekly_view(GContext *ctx, GRect bounds, UIState *ui_state) {
   int bar_spacing = 4;
   int actual_bar_w = bar_w - bar_spacing;
   
-  const char* days[] = {"S", "M", "T", "W", "T", "F", "S"};
+  // Get current day of week (0=Sunday, 6=Saturday)
+  time_t now = time(NULL);
+  struct tm *tm_now = localtime(&now);
+  int today_wday = tm_now->tm_wday;
+  
+  const char* day_names[] = {"S", "M", "T", "W", "T", "F", "S"};
 
   int title_h = 22;
   int label_h = 18;
@@ -39,8 +44,11 @@ void draw_weekly_view(GContext *ctx, GRect bounds, UIState *ui_state) {
               bar.size.w - 2, fill_h), 0, GCornerNone);
     }
     
+    // Compute what day of week "offset days ago" was
+    int wday = (today_wday - offset + 7) % 7;
+    
     graphics_context_set_text_color(ctx, UI_TEXT);
-    graphics_draw_text(ctx, days[i], FONT_CAPTION,
+    graphics_draw_text(ctx, day_names[wday], FONT_CAPTION,
                        GRect(bar_x, top_y + bar_h + 2, actual_bar_w, label_h), 
                        GTextOverflowModeTrailingEllipsis,
                        GTextAlignmentCenter, NULL);
