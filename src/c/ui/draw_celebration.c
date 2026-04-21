@@ -17,8 +17,10 @@ void draw_celebration(GContext *ctx, GRect bounds, UIState *ui_state) {
   
 #ifdef PBL_COLOR
   // Generate confetti positions relative to bounds
-  int cw = bounds.size.w;
-  int ch = bounds.size.h;
+  int cw = inner.size.w;
+  int ch = inner.size.h;
+  int cx = inner.origin.x;
+  int cy = inner.origin.y;
   int offset = ui_state->anim_on ? 0 : 3;
   
   // Spread confetti across the screen using proportional positions
@@ -41,13 +43,16 @@ void draw_celebration(GContext *ctx, GRect bounds, UIState *ui_state) {
   };
   
   for (int i = 0; i < 15; i++) {
+    int px = cx + confetti_positions[i][0];
+    int py = cy + confetti_positions[i][1];
+    
     GColor color = (i % 2 == 0) ? UI_ACCENT : UI_POSITIVE;
     graphics_context_set_fill_color(ctx, color);
     
     if (i % 3 == 0) {
-      graphics_fill_rect(ctx, GRect(confetti_positions[i][0], confetti_positions[i][1], 4, 4), 4, GCornersAll);
+      graphics_fill_rect(ctx, GRect(px, py, 4, 4), 4, GCornersAll);
     } else {
-      graphics_fill_circle(ctx, GPoint(confetti_positions[i][0], confetti_positions[i][1]), 2);
+      graphics_fill_circle(ctx, GPoint(px, py), 2);
     }
   }
 #endif
