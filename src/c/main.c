@@ -66,6 +66,13 @@ static void move_view(MainView new_view) {
   s_edit_amount = false;
   s_selecting_day = false;
   s_repeat_streak = 0;
+  // Cancel any running celebration
+  s_celebrating = false;
+  s_celebration_counter = 0;
+  if (s_anim_timer) {
+    app_timer_cancel(s_anim_timer);
+    s_anim_timer = NULL;
+  }
   layer_mark_dirty(s_canvas_layer);
 }
 
@@ -376,6 +383,9 @@ static void init(void) {
 static void deinit(void) {
   if (s_anim_timer) {
     app_timer_cancel(s_anim_timer);
+  }
+  if (s_undo_message_timer) {
+    app_timer_cancel(s_undo_message_timer);
   }
   tick_timer_service_unsubscribe();
   window_destroy(s_main_window);
