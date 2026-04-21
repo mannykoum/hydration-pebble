@@ -1,8 +1,42 @@
 #include "state.h"
 #include <string.h>
 
+typedef struct {
+  int goal_ml;
+  int amounts_ml[MAX_AMOUNTS];
+  uint8_t unit;
+  int current_streak;
+} SettingsBlock;
+
 void state_save(PersistedState *state) {
-  persist_write_data(STORAGE_KEY_STATE, state, sizeof(PersistedState));
+  int ret;
+  
+  // Write settings first
+  SettingsBlock settings = {
+    .goal_ml = state->goal_ml,
+    .unit = state->unit,
+    .current_streak = state->current_streak
+  };
+  memcpy(settings.amounts_ml, state->amounts_ml, sizeof(settings.amounts_ml));
+  ret = persist_write_data(STORAGE_KEY_SETTINGS, &settings, sizeof(SettingsBlock));
+  if (ret < 0) {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "persist settings failed: %d", ret);
+  }
+  
+  // Write all days
+  for (int i = 0; i < MAX_DAYS; i++) {
+    ret = persist_write_data(STORAGE_KEY_DAY_BASE + i, &state->days[i], sizeof(DayData));
+    if (ret < 0) {
+      APP_LOG(APP_LOG_LEVEL_ERROR, "persist day %d failed: %d", i, ret);
+    }
+  }
+  
+  // Write version key LAST as commit marker
+  uint8_t version = STORAGE_VERSION;
+  ret = persist_write_data(STORAGE_KEY_VERSION, &version, sizeof(version));
+  if (ret < 0) {
+    APP_LOG(APP_LOG_LEVEL_ERROR, "persist version failed: %d", ret);
+  }
 }
 
 // Valid date_key range: 20150101 to 20351231 (Pebble era)
@@ -48,8 +82,45 @@ static void sanitize_state(PersistedState *state) {
 }
 
 void state_load(PersistedState *state) {
-  if (persist_exists(STORAGE_KEY_STATE)) {
-    persist_read_data(STORAGE_KEY_STATE, state, sizeof(PersistedState));
+  if (persist_exists(STORAGE_KEY_VERSION)) {
+    uint8_t version = 0;
+    persist_read_data(STORAGE_KEY_VERSION, &version, sizeof(version));
+    
+    if (version != STORAGE_VERSION) {
+      APP_LOG(APP_LOG_LEVEL_WARNING, "Version mismatch: %d != %d, resetting", version, STORAGE_VERSION);
+      memset(state, 0, sizeof(PersistedState));
+      state->goal_ml = 2800;
+      state->amounts_ml[0] = 250;
+      state->amounts_ml[1] = 500;
+      state->amounts_ml[2] = 750;
+      state->amounts_ml[3] = 1000;
+      state->amounts_ml[4] = 237;
+      state->amounts_ml[5] = -237;
+      state->unit = UNIT_ML;
+      return;
+    }
+    
+    // Initialize settings to zero and check read return value
+    SettingsBlock settings = {0};
+    int ret = persist_read_data(STORAGE_KEY_SETTINGS, &settings, sizeof(SettingsBlock));
+    if (ret > 0) {
+      state->goal_ml = settings.goal_ml;
+      state->unit = settings.unit;
+      state->current_streak = settings.current_streak;
+      memcpy(state->amounts_ml, settings.amounts_ml, sizeof(state->amounts_ml));
+    }
+    // else: keep zeros, sanitize_state will set defaults
+    
+    // Check persist_exists before reading days, handle failures
+    for (int i = 0; i < MAX_DAYS; i++) {
+      if (persist_exists(STORAGE_KEY_DAY_BASE + i)) {
+        ret = persist_read_data(STORAGE_KEY_DAY_BASE + i, &state->days[i], sizeof(DayData));
+        if (ret < 0) {
+          memset(&state->days[i], 0, sizeof(DayData));
+        }
+      }
+    }
+    
     sanitize_state(state);
   } else {
     memset(state, 0, sizeof(PersistedState));

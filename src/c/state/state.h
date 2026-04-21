@@ -1,10 +1,17 @@
 #pragma once
 #include <pebble.h>
 
+#define STORAGE_VERSION 1
+// Deprecated: old key used in previous version, avoid reusing to prevent conflicts
 #define STORAGE_KEY_STATE 1
+// New storage keys avoid conflict with old STORAGE_KEY_STATE=1
+#define STORAGE_KEY_VERSION 100
+#define STORAGE_KEY_SETTINGS 101
+#define STORAGE_KEY_DAY_BASE 102  // Keys 102-115 for 14 days
+
 #define MAX_AMOUNTS 6
 #define MAX_DAYS 14
-#define MAX_POINTS 32
+#define MAX_POINTS 16
 
 typedef enum {
   UNIT_ML = 0,
